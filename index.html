@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IGB Estética Automotiva - ERP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Importação do Supabase -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
+        * {
+            font-family: 'Poppins', sans-serif !important;
+            font-weight: 700 !important;
+        }
+        .tab-active-receber { background-color: #22c55e !important; color: white !important; }
+        .tab-active-pagar { background-color: #ef4444 !important; color: white !important; }
+    </style>
+</head>
+<body class="bg-gray-100 flex h-screen overflow-hidden">
+
+    <!-- Sidebar Menu -->
+    <aside class="w-64 bg-[#0a0a0a] flex flex-col justify-between shrink-0">
+        <div class="pt-8">
+            <div class="w-full px-6 mb-10 flex flex-col items-center">
+                <img src="img/igblogo.png" alt="Logo IGB Estética Automotiva" class="w-full h-auto object-contain">
+            </div>
+            <nav class="flex-1 overflow-y-auto py-4 space-y-1 text-sm px-4">
+                <a href="#" onclick="switchTab('construcao', 'INÍCIO')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                    <i class="ph ph-house text-lg"></i> INÍCIO
+                </a>
+                <a href="#" onclick="switchTab('clientes', 'CLIENTES')" class="flex items-center gap-3 px-4 py-3 bg-gray-800 text-white border-l-4 border-white rounded-r-lg text-xs" id="nav-clientes">
+                    <i class="ph ph-user text-lg"></i> CLIENTES
+                </a>
+                <a href="#" onclick="switchTab('construcao', 'VEÍCULOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                    <i class="ph ph-car text-lg"></i> VEÍCULOS
+                </a>
+                <a href="#" onclick="switchTab('construcao', 'SERVIÇOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                    <i class="ph ph-list-dashes text-lg"></i> SERVIÇOS
+                </a>
+                <a href="#" onclick="switchTab('construcao', 'AGENDAMENTOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                    <i class="ph ph-clock text-lg"></i> AGENDAMENTOS
+                </a>
+                <a href="#" onclick="switchTab('financeiro', 'FINANCEIRO')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs" id="nav-financeiro">
+                    <i class="ph ph-currency-dollar text-lg"></i> FINANCEIRO
+                </a>
+                <a href="#" onclick="switchTab('construcao', 'GERENCIAL')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                    <i class="ph ph-gear text-lg"></i> GERENCIAL
+                </a>
+            </nav>
+        </div>
+        <div class="p-6 text-xs text-green-500 flex items-center gap-2">
+            <div class="w-2 h-2 rounded-full bg-green-500"></div> SISTEMA ONLINE <span class="text-gray-600 ml-auto">v1.0</span>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-screen overflow-hidden">
+        <!-- Header -->
+        <header class="h-20 bg-transparent flex justify-between items-center px-8 shrink-0 border-b border-gray-200 shadow-sm">
+            <h1 id="page-title" class="text-2xl text-gray-800 tracking-wide">CLIENTES</h1>
+            <div class="flex items-center gap-4">
+                <div class="text-right">
+                    <p class="text-gray-800 text-sm">01 de Abril de 2026</p>
+                    <p class="text-gray-400 text-xs">Terça-feira</p>
+                </div>
+                <div class="flex items-center gap-3 bg-white pl-3 pr-4 py-1.5 rounded-full shadow-sm border border-gray-100">
+                    <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-white text-sm">B</div>
+                    <span class="text-gray-700 text-sm">Olá, Bruno</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Em Construção Area -->
+        <div id="view-construcao" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col items-center justify-center hidden">
+            <i class="ph ph-traffic-cone text-6xl text-yellow-500 mb-4 animate-bounce"></i>
+            <h2 class="text-2xl text-gray-800 mb-2">Página em Construção</h2>
+            <p class="text-gray-500 text-center max-w-md">O Bruninho está trabalhando nisso, tenha calma e utilize o que está funcionando!</p>
+        </div>
+
+        <!-- Clientes Area -->
+        <div id="view-clientes" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative">
+            <div class="bg-gray-900 rounded-xl p-2 flex items-center gap-4 shrink-0 mb-4">
+                <div class="flex items-center gap-2 px-4 border-r border-gray-700">
+                    <i class="ph ph-user text-gray-400 text-xl"></i>
+                    <button onclick="openModal('modal-cliente')" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors">
+                        <i class="ph ph-plus"></i> NOVO
+                    </button>
+                </div>
+                <div class="flex-1 flex items-center bg-gray-800 rounded-lg px-4 py-2">
+                    <input type="text" placeholder="Pesquisar cliente por nome, telefone..." class="bg-transparent border-none outline-none text-gray-300 w-full text-sm placeholder-gray-500">
+                    <i class="ph ph-magnifying-glass text-gray-400"></i>
+                </div>
+                <button class="bg-gray-800 text-gray-300 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-700 transition-colors text-sm">
+                    <i class="ph ph-calendar-blank"></i> HOJE
+                </button>
+            </div>
+
+            <!-- Tabela Clientes -->
+            <div class="bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-xs">
+                            <tr>
+                                <th class="py-4 px-6">NOME</th>
+                                <th class="py-4 px-6">TELEFONE</th>
+                                <th class="py-4 px-6">ENDEREÇO</th>
+                                <th class="py-4 px-6">E-MAIL</th>
+                                <th class="py-4 px-6">ÚLTIMO SERVIÇO</th>
+                                <th class="py-4 px-6 text-center">AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-clientes-body" class="text-sm text-gray-700">
+                            <!-- Injetado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-xs text-gray-500 shrink-0">
+                    <p>Mostrando <span id="contador-clientes" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded">0</span> clientes cadastrados</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Financeiro Area -->
+        <div id="view-financeiro" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative hidden">
+            <!-- Cards Resumo -->
+            <div class="grid grid-cols-2 gap-4 mb-4 shrink-0">
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-6 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
+                    <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
+                        <i class="ph ph-trend-up text-2xl"></i>
+                    </div>
+                    <div class="flex-1 flex justify-between items-end">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">CONTAS A RECEBER</p>
+                            <h3 id="resumo-rec-total" class="text-2xl text-gray-800">R$ 0,00</h3>
+                            <p class="text-[10px] text-gray-400 uppercase">Total</p>
+                        </div>
+                        <div>
+                            <h4 id="resumo-rec-aberto" class="text-lg text-gray-800">R$ 0,00</h4>
+                            <p class="text-[10px] text-gray-400 uppercase">Em Aberto</p>
+                        </div>
+                        <div>
+                            <h4 id="resumo-rec-pago" class="text-lg text-gray-800">R$ 0,00</h4>
+                            <p class="text-[10px] text-gray-400 uppercase">Recebido</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-6 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
+                    <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
+                        <i class="ph ph-trend-down text-2xl"></i>
+                    </div>
+                    <div class="flex-1 flex justify-between items-end">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">CONTAS A PAGAR</p>
+                            <h3 id="resumo-pag-total" class="text-2xl text-gray-800">R$ 0,00</h3>
+                            <p class="text-[10px] text-gray-400 uppercase">Total</p>
+                        </div>
+                        <div>
+                            <h4 id="resumo-pag-aberto" class="text-lg text-gray-800">R$ 0,00</h4>
+                            <p class="text-[10px] text-gray-400 uppercase">Em Aberto</p>
+                        </div>
+                        <div>
+                            <h4 id="resumo-pag-pago" class="text-lg text-gray-800">R$ 0,00</h4>
+                            <p class="text-[10px] text-gray-400 uppercase">Pago</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controles Tabela Financeiro -->
+            <div class="flex gap-2 mb-2 shrink-0">
+                <button id="tab-receber" onclick="switchFinTab('receber')" class="px-6 py-2 rounded-t-lg bg-green-500 text-white text-xs transition-colors">CONTAS A RECEBER</button>
+                <button id="tab-pagar" onclick="switchFinTab('pagar')" class="px-6 py-2 rounded-t-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs transition-colors">CONTAS A PAGAR</button>
+            </div>
+
+            <div class="bg-gray-900 rounded-xl rounded-tl-none p-2 flex items-center gap-4 shrink-0 mb-4">
+                <div class="flex items-center gap-2 px-4 border-r border-gray-700">
+                    <span id="badge-fin-tipo" class="bg-green-500 text-white text-[10px] px-2 py-1 rounded">CONTAS A RECEBER</span>
+                    <button onclick="openModal('modal-financeiro')" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors ml-2 text-sm">
+                        <i class="ph ph-plus"></i> NOVO
+                    </button>
+                </div>
+                <div class="flex-1 flex items-center bg-gray-800 rounded-lg px-4 py-2">
+                    <input type="text" placeholder="Pesquisar lançamento..." class="bg-transparent border-none outline-none text-gray-300 w-full text-sm placeholder-gray-500">
+                    <i class="ph ph-magnifying-glass text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- Tabela Financeiro -->
+            <div class="bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse">
+                        <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-xs">
+                            <tr>
+                                <th class="py-4 px-6">VENCIMENTO</th>
+                                <th class="py-4 px-6">DESCRIÇÃO</th>
+                                <th class="py-4 px-6">CLIENTE/FORNECEDOR</th>
+                                <th class="py-4 px-6">VALOR TOTAL</th>
+                                <th class="py-4 px-6">VALOR PAGO</th>
+                                <th class="py-4 px-6">STATUS</th>
+                                <th class="py-4 px-6 text-center">AÇÕES</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-financeiro-body" class="text-sm text-gray-700">
+                            <!-- Injetado via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Cliente -->
+    <div id="modal-cliente" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h2 class="text-xl text-gray-800 flex items-center gap-2"><i class="ph ph-user-plus text-2xl text-blue-600"></i> Cadastro de Cliente</h2>
+                <button onclick="closeModal('modal-cliente')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            <form id="form-cliente" class="p-6 space-y-4" onsubmit="salvarCliente(event)">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Nome Completo *</label>
+                        <input type="text" id="cli-nome" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 focus:ring-0 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Telefone *</label>
+                        <input type="text" id="cli-telefone" placeholder="(00) 00000-0000" maxlength="15" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">E-mail</label>
+                        <input type="email" id="cli-email" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Endereço</label>
+                        <input type="text" id="cli-endereco" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                    <button type="button" onclick="closeModal('modal-cliente')" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar Cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Financeiro -->
+    <div id="modal-financeiro" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+                <h2 id="titulo-modal-financeiro" class="text-xl text-gray-800 flex items-center gap-2">
+                    <i class="ph ph-plus-circle text-2xl text-green-500"></i> Novo Lançamento
+                </h2>
+                <button onclick="closeModal('modal-financeiro')" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="ph ph-x text-2xl"></i>
+                </button>
+            </div>
+            <form id="form-financeiro" class="p-6 space-y-4" onsubmit="salvarFinanceiro(event)">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Descrição *</label>
+                        <input type="text" id="fin-descricao" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Cliente / Fornecedor</label>
+                        <input type="text" id="fin-cliente" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Vencimento *</label>
+                        <input type="date" id="fin-vencimento" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Valor Total (R$) *</label>
+                        <input type="number" step="0.01" id="fin-valor-total" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Valor Pago/Recebido (R$)</label>
+                        <input type="number" step="0.01" id="fin-valor-pago" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Status</label>
+                        <select id="fin-status" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            <option value="Pendente">Pendente</option>
+                            <option value="Pago">Pago/Recebido</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Forma de Pagamento</label>
+                        <select id="fin-forma-pagamento" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            <option value="PIX">PIX</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                            <option value="Cartão de Débito">Cartão de Débito</option>
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Boleto">Boleto</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                    <button type="button" onclick="closeModal('modal-financeiro')" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar Lançamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+
+        // ==========================================
+        // 1. CONFIGURAÇÃO SUPABASE
+        // ==========================================
+        const supabaseUrl = 'https://ssktbtsjcwppooxiqmkc.supabase.co'; 
+        const supabaseKey = 'sb_publishable_4yIuy8TPUdvPAaMTSkenIQ_eJzWahFG'; 
+        
+        let supabaseClient = null; 
+        
+        try {
+            if (supabaseUrl.startsWith('http')) {
+                supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+            } else {
+                console.warn("Coloque a URL e a Key do Supabase para ativar o banco de dados.");
+            }
+        } catch (error) {
+            console.warn("Aviso: Falha ao iniciar o Supabase.", error);
+        }
+
+        // Variáveis de Estado
+        let clienteEmEdicaoId = null;
+        let financeiroEmEdicaoId = null;
+        let tipoFinanceiroAtual = 'receber'; 
+
+        // ==========================================
+        // NAVEGAÇÃO E UI
+        // ==========================================
+        function switchTab(viewId, title, elementoClicado = null) {
+            document.getElementById('view-clientes').classList.add('hidden');
+            document.getElementById('view-financeiro').classList.add('hidden');
+            document.getElementById('view-construcao').classList.add('hidden');
+            document.getElementById('page-title').innerText = title;
+
+            // Remove destaques do menu
+            document.querySelectorAll('nav a').forEach(a => {
+                a.classList.remove('bg-gray-800', 'text-white', 'border-l-4', 'border-white', 'rounded-r-lg');
+                a.classList.add('text-gray-400');
+            });
+
+            // Se a chamada veio de um clique no menu, destaca ele
+            let navItem = elementoClicado || window.event?.currentTarget;
+
+            if(viewId === 'clientes') {
+                document.getElementById('view-clientes').classList.remove('hidden');
+                document.getElementById('nav-clientes').classList.add('bg-gray-800', 'text-white', 'border-l-4', 'border-white', 'rounded-r-lg');
+                if (supabaseClient) loadClientes();
+            } else if (viewId === 'financeiro') {
+                document.getElementById('view-financeiro').classList.remove('hidden');
+                document.getElementById('nav-financeiro').classList.add('bg-gray-800', 'text-white', 'border-l-4', 'border-white', 'rounded-r-lg');
+                if (supabaseClient) loadFinanceiro();
+            } else {
+                document.getElementById('view-construcao').classList.remove('hidden');
+                if (navItem && navItem.classList) {
+                    navItem.classList.add('bg-gray-800', 'text-white', 'border-l-4', 'border-white', 'rounded-r-lg');
+                }
+            }
+        }
+
+        function switchFinTab(tipo) {
+            tipoFinanceiroAtual = tipo;
+            const tabRec = document.getElementById('tab-receber');
+            const tabPag = document.getElementById('tab-pagar');
+            const badge = document.getElementById('badge-fin-tipo');
+
+            tabRec.className = `px-6 py-2 rounded-t-lg text-xs transition-colors ${tipo === 'receber' ? 'tab-active-receber' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`;
+            tabPag.className = `px-6 py-2 rounded-t-lg text-xs transition-colors ${tipo === 'pagar' ? 'tab-active-pagar' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'}`;
+            
+            badge.className = `text-white text-[10px] px-2 py-1 rounded ${tipo === 'receber' ? 'bg-green-500' : 'bg-red-500'}`;
+            badge.innerText = tipo === 'receber' ? 'CONTAS A RECEBER' : 'CONTAS A PAGAR';
+
+            if (supabaseClient) loadFinanceiro(); 
+        }
+
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.remove('hidden');
+            if (modalId === 'modal-financeiro') {
+                const tituloModal = document.getElementById('titulo-modal-financeiro');
+                if (tipoFinanceiroAtual === 'pagar') {
+                    tituloModal.innerHTML = '<i class="ph ph-minus-circle text-2xl text-red-500"></i> Novo Pagamento';
+                } else {
+                    tituloModal.innerHTML = '<i class="ph ph-plus-circle text-2xl text-green-500"></i> Novo Recebimento';
+                }
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            if (modalId === 'modal-cliente') {
+                document.getElementById('form-cliente').reset();
+                clienteEmEdicaoId = null;
+            }
+            if (modalId === 'modal-financeiro') {
+                document.getElementById('form-financeiro').reset();
+                financeiroEmEdicaoId = null;
+            }
+        }
+
+        // ==========================================
+        // MÓDULO CLIENTES (SUPABASE)
+        // ==========================================
+        async function loadClientes() {
+            if (!supabaseClient) return;
+            const { data, error } = await supabaseClient.from('clientes').select('*').order('created_at', { ascending: false });
+            if (error) return console.error('Erro ao carregar clientes', error);
+
+            const tbody = document.getElementById('tabela-clientes-body');
+            tbody.innerHTML = '';
+            document.getElementById('contador-clientes').innerText = data.length;
+
+            data.forEach(cliente => {
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                        <td class="py-3 px-6 font-medium text-gray-900">${cliente.nome}</td>
+                        <td class="py-3 px-6">${cliente.telefone}</td>
+                        <td class="py-3 px-6 text-gray-500 truncate max-w-[200px]">${cliente.endereco || '-'}</td>
+                        <td class="py-3 px-6 text-gray-500">${cliente.email || '-'}</td>
+                        <td class="py-3 px-6 text-gray-500">${cliente.ultimo_servico || 'Sem registros'}</td>
+                        <td class="py-3 px-6 text-center">
+                            <button onclick="editarCliente('${cliente.id}')" class="text-gray-400 hover:text-blue-600 mx-1 transition-colors"><i class="ph ph-pencil-simple text-lg"></i></button>
+                            <button onclick="deletarCliente('${cliente.id}')" class="text-gray-400 hover:text-red-600 mx-1 transition-colors"><i class="ph ph-trash text-lg"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function salvarCliente(event) {
+            event.preventDefault();
+            if (!supabaseClient) return alert("Configure as chaves do Supabase para salvar dados.");
+
+            const cliente = {
+                nome: document.getElementById('cli-nome').value,
+                telefone: document.getElementById('cli-telefone').value,
+                email: document.getElementById('cli-email').value,
+                endereco: document.getElementById('cli-endereco').value
+            };
+
+            if (clienteEmEdicaoId) {
+                await supabaseClient.from('clientes').update(cliente).eq('id', clienteEmEdicaoId);
+            } else {
+                await supabaseClient.from('clientes').insert([cliente]);
+            }
+
+            closeModal('modal-cliente');
+            loadClientes();
+        }
+
+        async function deletarCliente(id) {
+            if(confirm('Tem certeza que deseja excluir este cliente?')) {
+                await supabaseClient.from('clientes').delete().eq('id', id);
+                loadClientes();
+            }
+        }
+
+        async function editarCliente(id) {
+            const { data, error } = await supabaseClient.from('clientes').select('*').eq('id', id).single();
+            if (data) {
+                document.getElementById('cli-nome').value = data.nome;
+                document.getElementById('cli-telefone').value = data.telefone;
+                document.getElementById('cli-email').value = data.email || '';
+                document.getElementById('cli-endereco').value = data.endereco || '';
+                clienteEmEdicaoId = id;
+                openModal('modal-cliente');
+            }
+        }
+
+        // ==========================================
+        // MÓDULO FINANCEIRO (SUPABASE)
+        // ==========================================
+        async function loadFinanceiro() {
+            if (!supabaseClient) return;
+            // Carrega TUDO para calcular os resumos no cabeçalho
+            const { data: todos, error: errAll } = await supabaseClient.from('financeiro').select('*');
+            if (!errAll && todos) atualizarResumos(todos);
+
+            // Filtra pela aba atual (receber ou pagar)
+            const { data, error } = await supabaseClient.from('financeiro').select('*').eq('tipo', tipoFinanceiroAtual).order('vencimento', { ascending: true });
+            if (error) return console.error('Erro ao carregar financeiro', error);
+
+            const tbody = document.getElementById('tabela-financeiro-body');
+            tbody.innerHTML = '';
+
+            data.forEach(item => {
+                const badgeCor = item.status === 'Pago' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+                tbody.innerHTML += `
+                    <tr class="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                        <td class="py-3 px-6 text-gray-900">${item.vencimento.split('-').reverse().join('/')}</td>
+                        <td class="py-3 px-6 font-medium text-gray-900">${item.descricao}</td>
+                        <td class="py-3 px-6 text-gray-500">${item.cliente || '-'}</td>
+                        <td class="py-3 px-6 font-medium">R$ ${parseFloat(item.valor_total).toFixed(2)}</td>
+                        <td class="py-3 px-6 text-gray-500">R$ ${parseFloat(item.valor_pago || 0).toFixed(2)}</td>
+                        <td class="py-3 px-6"><span class="px-2 py-1 rounded text-[10px] ${badgeCor}">${item.status}</span></td>
+                        <td class="py-3 px-6 text-center">
+                            <button onclick="editarFinanceiro('${item.id}')" class="text-gray-400 hover:text-blue-600 mx-1 transition-colors"><i class="ph ph-pencil-simple text-lg"></i></button>
+                            <button onclick="deletarFinanceiro('${item.id}')" class="text-gray-400 hover:text-red-600 mx-1 transition-colors"><i class="ph ph-trash text-lg"></i></button>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        function atualizarResumos(dados) {
+            let recTotal = 0, recAberto = 0, recPago = 0;
+            let pagTotal = 0, pagAberto = 0, pagPago = 0;
+
+            dados.forEach(d => {
+                if (d.tipo === 'receber') {
+                    recTotal += parseFloat(d.valor_total);
+                    recPago += parseFloat(d.valor_pago || 0);
+                    recAberto += (parseFloat(d.valor_total) - parseFloat(d.valor_pago || 0));
+                } else {
+                    pagTotal += parseFloat(d.valor_total);
+                    pagPago += parseFloat(d.valor_pago || 0);
+                    pagAberto += (parseFloat(d.valor_total) - parseFloat(d.valor_pago || 0));
+                }
+            });
+
+            document.getElementById('resumo-rec-total').innerText = `R$ ${recTotal.toFixed(2)}`;
+            document.getElementById('resumo-rec-aberto').innerText = `R$ ${recAberto.toFixed(2)}`;
+            document.getElementById('resumo-rec-pago').innerText = `R$ ${recPago.toFixed(2)}`;
+
+            document.getElementById('resumo-pag-total').innerText = `R$ ${pagTotal.toFixed(2)}`;
+            document.getElementById('resumo-pag-aberto').innerText = `R$ ${pagAberto.toFixed(2)}`;
+            document.getElementById('resumo-pag-pago').innerText = `R$ ${pagPago.toFixed(2)}`;
+        }
+
+        async function salvarFinanceiro(event) {
+            event.preventDefault();
+            if (!supabaseClient) return alert("Configure as chaves do Supabase para salvar dados.");
+
+            const fin = {
+                tipo: tipoFinanceiroAtual,
+                descricao: document.getElementById('fin-descricao').value,
+                cliente: document.getElementById('fin-cliente').value,
+                vencimento: document.getElementById('fin-vencimento').value,
+                valor_total: parseFloat(document.getElementById('fin-valor-total').value),
+                valor_pago: parseFloat(document.getElementById('fin-valor-pago').value || 0),
+                status: document.getElementById('fin-status').value,
+                forma_pagamento: document.getElementById('fin-forma-pagamento').value
+            };
+
+            if (financeiroEmEdicaoId) {
+                await supabaseClient.from('financeiro').update(fin).eq('id', financeiroEmEdicaoId);
+            } else {
+                await supabaseClient.from('financeiro').insert([fin]);
+            }
+
+            closeModal('modal-financeiro');
+            loadFinanceiro();
+        }
+
+        async function editarFinanceiro(id) {
+            const { data, error } = await supabaseClient.from('financeiro').select('*').eq('id', id).single();
+            if (data) {
+                document.getElementById('fin-descricao').value = data.descricao;
+                document.getElementById('fin-cliente').value = data.cliente || '';
+                document.getElementById('fin-vencimento').value = data.vencimento;
+                document.getElementById('fin-valor-total').value = data.valor_total;
+                document.getElementById('fin-valor-pago').value = data.valor_pago || 0;
+                document.getElementById('fin-status').value = data.status;
+                document.getElementById('fin-forma-pagamento').value = data.forma_pagamento;
+                
+                financeiroEmEdicaoId = id;
+                openModal('modal-financeiro');
+            }
+        }
+
+        async function deletarFinanceiro(id) {
+            if(confirm('Tem certeza que deseja excluir este lançamento?')) {
+                await supabaseClient.from('financeiro').delete().eq('id', id);
+                loadFinanceiro();
+            }
+        }
+
+        // ==========================================
+        // MÁSCARA DE TELEFONE
+        // ==========================================
+        document.getElementById('cli-telefone').addEventListener('input', function (e) {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,2})(\d{0,5})(\d{0,4})/);
+            e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+            
+            if (e.target.value.length < 15) {
+                e.target.setCustomValidity("Preencha o telefone completo com DDD");
+            } else {
+                e.target.setCustomValidity("");
+            }
+        });
+
+        // Iniciar tela
+        switchTab('clientes', 'CLIENTES');
+    </script>
+</body>
+</html>
