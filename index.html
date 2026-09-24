@@ -254,8 +254,8 @@
 
     <!-- Modal Financeiro -->
     <div id="modal-financeiro" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
-        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
                 <h2 id="titulo-modal-financeiro" class="text-xl text-gray-800 flex items-center gap-2">
                     <i class="ph ph-plus-circle text-2xl text-green-500"></i> Novo Lançamento
                 </h2>
@@ -263,7 +263,8 @@
                     <i class="ph ph-x text-2xl"></i>
                 </button>
             </div>
-            <form id="form-financeiro" class="p-6 space-y-4" onsubmit="salvarFinanceiro(event)">
+            
+            <form id="form-financeiro" class="p-6 space-y-4 overflow-y-auto flex-1" onsubmit="salvarFinanceiro(event)">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
                         <label class="block text-xs text-gray-500 mb-1">Descrição *</label>
@@ -274,18 +275,23 @@
                         <input type="text" id="fin-cliente" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
                     </div>
                     <div>
-                        <label class="block text-xs text-gray-500 mb-1">Vencimento (1ª Parcela) *</label>
+                        <!-- Label dinâmica do Vencimento -->
+                        <label id="fin-label-vencimento" class="block text-xs text-gray-500 mb-1">Vencimento (1ª Parcela) *</label>
                         <input type="date" id="fin-vencimento" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
                     </div>
                     
-                    <div>
+                    <!-- Div de Parcelas oculta-se ao editar parcela -->
+                    <div id="fin-div-parcelamento">
                         <div class="flex justify-between items-center mb-1">
-                            <label class="block text-xs text-gray-500">Nº de Parcelas *</label>
+                            <label class="block text-xs text-gray-500">Parcelas e Intervalo (dias)</label>
                             <label class="flex items-center gap-1 text-[10px] font-bold text-blue-600 cursor-pointer">
                                 <input type="checkbox" id="fin-tem-parcelas" onchange="toggleParcelas()" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"> Parcelado?
                             </label>
                         </div>
-                        <input type="number" id="fin-parcelas" min="1" value="1" disabled required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-gray-100 text-gray-400">
+                        <div class="flex gap-2">
+                            <input type="number" id="fin-parcelas" min="1" value="1" disabled required class="w-1/2 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-gray-100 text-gray-400" title="Quantidade de parcelas">
+                            <input type="number" id="fin-intervalo" min="1" value="30" disabled required class="w-1/2 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-gray-100 text-gray-400" title="Dias de intervalo entre parcelas">
+                        </div>
                     </div>
 
                     <div>
@@ -313,6 +319,10 @@
                             <option value="Boleto">Boleto</option>
                         </select>
                     </div>
+                    
+                    <div id="fin-lista-parcelas" class="col-span-2 hidden mt-2">
+                        <!-- Injetado via JS -->
+                    </div>
                 </div>
                 <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
                     <button type="button" onclick="closeModal('modal-financeiro')" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
@@ -326,8 +336,8 @@
         // ==========================================
         // 1. CONFIGURAÇÃO SUPABASE (HOMOLOGAÇÃO)
         // ==========================================
-        const supabaseUrl = 'https://ssktbtsjcwppooxiqmkc.supabase.co'; 
-        const supabaseKey = 'sb_publishable_4yIuy8TPUdvPAaMTSkenIQ_eJzWahFG';  
+        const supabaseUrl = 'https://dxdfailixqzzclqxghos.supabase.co'; 
+        const supabaseKey = 'sb_publishable_e_2vixLIkQYhrHaCprGXVg_S5IUrsah'; 
         
         let supabaseClient = null; 
         
@@ -341,10 +351,12 @@
 
         let clienteEmEdicaoId = null;
         let financeiroEmEdicaoId = null;
+        let financeiroEmEdicaoGrupoId = null; 
         let tipoFinanceiroAtual = 'receber'; 
+        let modalActionContext = 'novo'; 
 
         // ==========================================
-        // UTILITÁRIOS (GERADOR DE ID)
+        // UTILITÁRIOS (GERADOR DE ID E DATA)
         // ==========================================
         function gerarIdGrupo() {
             if (window.crypto && window.crypto.randomUUID) {
@@ -359,6 +371,7 @@
         function toggleParcelas() {
             const checkbox = document.getElementById('fin-tem-parcelas');
             const inputParcelas = document.getElementById('fin-parcelas');
+            const inputIntervalo = document.getElementById('fin-intervalo');
             const selectFormaPagamento = document.getElementById('fin-forma-pagamento');
 
             if (checkbox.checked) {
@@ -367,6 +380,11 @@
                 inputParcelas.classList.add('bg-white');
                 inputParcelas.value = 2; 
                 inputParcelas.min = 2;
+                
+                inputIntervalo.disabled = false;
+                inputIntervalo.classList.remove('bg-gray-100', 'text-gray-400');
+                inputIntervalo.classList.add('bg-white');
+
                 selectFormaPagamento.value = 'Cartão de Crédito'; 
             } else {
                 inputParcelas.disabled = true;
@@ -374,6 +392,11 @@
                 inputParcelas.classList.remove('bg-white');
                 inputParcelas.value = 1;
                 inputParcelas.min = 1;
+
+                inputIntervalo.disabled = true;
+                inputIntervalo.classList.add('bg-gray-100', 'text-gray-400');
+                inputIntervalo.classList.remove('bg-white');
+                inputIntervalo.value = 30;
             }
         }
 
@@ -429,15 +452,30 @@
             
             if (modalId === 'modal-financeiro') {
                 const tituloModal = document.getElementById('titulo-modal-financeiro');
-                if (tipoFinanceiroAtual === 'pagar') {
-                    tituloModal.innerHTML = '<i class="ph ph-minus-circle text-2xl text-red-500"></i> Novo Pagamento';
+                const tipoNome = tipoFinanceiroAtual === 'pagar' ? 'Pagamento' : 'Recebimento';
+                const icone = tipoFinanceiroAtual === 'pagar' 
+                    ? '<i class="ph ph-minus-circle text-2xl text-red-500"></i>' 
+                    : '<i class="ph ph-plus-circle text-2xl text-green-500"></i>';
+
+                if (modalActionContext === 'editar_mestre' || modalActionContext === 'editar_simples') {
+                    tituloModal.innerHTML = `${icone} Editar ${tipoNome}`;
+                } else if (modalActionContext === 'editar_parcela') {
+                    tituloModal.innerHTML = `${icone} Editar Parcela`;
                 } else {
-                    tituloModal.innerHTML = '<i class="ph ph-plus-circle text-2xl text-green-500"></i> Novo Recebimento';
+                    tituloModal.innerHTML = `${icone} Novo ${tipoNome}`;
                 }
 
-                if (!financeiroEmEdicaoId) {
+                if (modalActionContext === 'novo') {
                     const chkParcelas = document.getElementById('fin-tem-parcelas');
                     const inputParcelas = document.getElementById('fin-parcelas');
+                    const inputIntervalo = document.getElementById('fin-intervalo');
+                    
+                    document.getElementById('fin-label-vencimento').innerText = 'Vencimento (1ª Parcela) *';
+                    document.getElementById('fin-div-parcelamento').classList.remove('hidden');
+                    
+                    const descInput = document.getElementById('fin-descricao');
+                    descInput.disabled = false;
+                    descInput.classList.remove('bg-gray-100', 'text-gray-400');
                     
                     chkParcelas.checked = false;
                     chkParcelas.disabled = false;
@@ -446,8 +484,20 @@
                     inputParcelas.value = 1;
                     inputParcelas.classList.add('bg-gray-100', 'text-gray-400');
                     inputParcelas.classList.remove('bg-white');
+
+                    inputIntervalo.disabled = true;
+                    inputIntervalo.value = 30;
+                    inputIntervalo.classList.add('bg-gray-100', 'text-gray-400');
+                    inputIntervalo.classList.remove('bg-white');
                     
                     document.getElementById('fin-status').value = 'Pendente';
+                    
+                    document.getElementById('fin-valor-total').disabled = false;
+                    document.getElementById('fin-valor-pago').disabled = false;
+                    document.getElementById('fin-vencimento').disabled = false;
+                    document.getElementById('fin-status').disabled = false;
+                    
+                    document.getElementById('fin-lista-parcelas').classList.add('hidden');
                 }
             }
         }
@@ -461,6 +511,14 @@
             if (modalId === 'modal-financeiro') {
                 document.getElementById('form-financeiro').reset();
                 financeiroEmEdicaoId = null;
+                financeiroEmEdicaoGrupoId = null;
+                modalActionContext = 'novo';
+                
+                document.getElementById('fin-valor-total').disabled = false;
+                document.getElementById('fin-valor-pago').disabled = false;
+                document.getElementById('fin-vencimento').disabled = false;
+                document.getElementById('fin-status').disabled = false;
+                document.getElementById('fin-lista-parcelas').classList.add('hidden');
             }
         }
 
@@ -626,6 +684,7 @@
                             <td class="py-3 px-4 text-gray-700 font-bold">R$ ${totalPago.toFixed(2).replace('.', ',')}</td>
                             <td class="py-3 px-4"><span class="px-2 py-1 rounded text-[10px] ${badgeMaster}">${statusGrupo}</span></td>
                             <td class="py-3 px-4 text-center" onclick="event.stopPropagation()">
+                                <button onclick="editarGrupo('${gId}')" title="Editar informações do grupo" class="text-gray-400 hover:text-blue-600 mx-1"><i class="ph ph-pencil-simple text-lg"></i></button>
                                 <button onclick="deletarGrupo('${gId}')" title="Apagar lançamento completo" class="text-gray-400 hover:text-red-600 mx-1"><i class="ph ph-trash text-lg"></i></button>
                             </td>
                         </tr>
@@ -633,11 +692,14 @@
 
                     itens.forEach(item => {
                         const badgeCor = item.status === 'Pago' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700';
+                        const numParcelaText = item.parcela ? item.parcela.split('/')[0] : '1';
+                        const descParcela = `Parcela ${numParcelaText}`;
+
                         tbody.innerHTML += `
                             <tr class="border-b border-gray-50 bg-white hidden grupo-child-${gId} hover:bg-gray-50 transition-colors">
                                 <td class="py-2 px-4 text-right"><i class="ph ph-arrow-elbow-down-right text-gray-300 text-lg"></i></td>
                                 <td class="py-2 px-4 text-gray-500 text-sm">${item.vencimento.split('-').reverse().join('/')}</td>
-                                <td class="py-2 px-4 text-gray-500 text-sm pl-8">${item.descricao}</td>
+                                <td class="py-2 px-4 text-gray-600 font-medium text-sm pl-8">${descParcela}</td>
                                 <td class="py-2 px-4 text-gray-400 text-sm">-</td>
                                 <td class="py-2 px-2 text-gray-500 text-sm text-center">${item.parcela}</td>
                                 <td class="py-2 px-4 text-gray-600 text-sm">R$ ${parseFloat(item.valor_total).toFixed(2).replace('.', ',')}</td>
@@ -692,6 +754,7 @@
             const statusUI = document.getElementById('fin-status').value;
             const forma_pagamento = document.getElementById('fin-forma-pagamento').value;
             const numParcelas = parseInt(document.getElementById('fin-parcelas').value) || 1;
+            const intervaloDias = parseInt(document.getElementById('fin-intervalo').value) || 30;
 
             if (statusUI === 'Pago' && valorPagoBase < valorTotalBase) {
                 valorPagoBase = valorTotalBase; 
@@ -699,24 +762,95 @@
             const statusFinal = (valorPagoBase >= valorTotalBase) ? 'Pago' : 'Pendente';
 
             if (financeiroEmEdicaoId) {
+                // Modo Edição: PARCELA INDIVIDUAL
+                const isParcelaFilha = modalActionContext === 'editar_parcela';
                 const fin = {
-                    tipo, descricao, cliente, vencimento: dataBase,
+                    tipo, cliente, vencimento: dataBase,
                     valor_total: valorTotalBase, valor_pago: valorPagoBase,
                     status: statusFinal, forma_pagamento, apagado: 'N'
                 };
+                
+                // Só atualiza a descrição no banco se não for uma parcela filha, 
+                // para não sobrescrever o nome real do lançamento mestre
+                if (!isParcelaFilha) {
+                    fin.descricao = descricao;
+                }
+
                 await supabaseClient.from('financeiro').update(fin).eq('id', financeiroEmEdicaoId);
+            
+            } else if (financeiroEmEdicaoGrupoId) {
+                // Modo Edição: GRUPO MESTRE INTEIRO COM RECALCULO E REDISTRIBUIÇÃO TOTAL
+                const { data: parcelasAntigas } = await supabaseClient.from('financeiro')
+                    .select('id, parcela')
+                    .eq('grupo_id', financeiroEmEdicaoGrupoId)
+                    .eq('apagado', 'N')
+                    .order('vencimento', { ascending: true });
+                
+                const numParcelasAtuais = parcelasAntigas.length;
+                const valorParcela = Math.floor((valorTotalBase / numParcelasAtuais) * 100) / 100;
+                const diferenca = valorTotalBase - (valorParcela * numParcelasAtuais);
+
+                let [ano, mes, dia] = dataBase.split('-');
+                let dataBaseObj = new Date(ano, parseInt(mes) - 1, dia); // Mes começa do 0
+                let saldoRestantePago = valorPagoBase;
+
+                for (let i = 0; i < numParcelasAtuais; i++) {
+                    let p = parcelasAntigas[i];
+                    let numIndex = i + 1;
+                    
+                    let dataVenc = new Date(dataBaseObj);
+                    dataVenc.setDate(dataVenc.getDate() + (i * intervaloDias));
+                    
+                    let yyyy = dataVenc.getFullYear();
+                    let mm = String(dataVenc.getMonth() + 1).padStart(2, '0');
+                    let dd = String(dataVenc.getDate()).padStart(2, '0');
+                    let vencFormatado = `${yyyy}-${mm}-${dd}`;
+                    
+                    let valorAtual = valorParcela;
+                    if (numIndex === 1) valorAtual += diferenca;
+
+                    let pagoNestaParcela = 0;
+                    if (saldoRestantePago >= valorAtual) {
+                        pagoNestaParcela = valorAtual;
+                        saldoRestantePago -= valorAtual;
+                    } else if (saldoRestantePago > 0) {
+                        pagoNestaParcela = saldoRestantePago;
+                        saldoRestantePago = 0;
+                    }
+
+                    let statusParcela = (pagoNestaParcela >= valorAtual) ? 'Pago' : 'Pendente';
+                    let novaDesc = numParcelasAtuais > 1 ? `${descricao} (Parc. ${p.parcela})` : descricao;
+
+                    await supabaseClient.from('financeiro').update({
+                        descricao: novaDesc,
+                        cliente: cliente,
+                        vencimento: vencFormatado,
+                        valor_total: valorAtual,
+                        valor_pago: pagoNestaParcela,
+                        status: statusParcela,
+                        forma_pagamento: forma_pagamento
+                    }).eq('id', p.id);
+                }
+
             } else {
+                // Modo INSERÇÃO NOVA
                 const registros = [];
                 const grupoId = gerarIdGrupo();
                 const valorParcela = Math.floor((valorTotalBase / numParcelas) * 100) / 100;
                 const diferenca = valorTotalBase - (valorParcela * numParcelas);
 
                 let [ano, mes, dia] = dataBase.split('-');
+                let dataBaseObj = new Date(ano, parseInt(mes) - 1, dia);
                 let saldoRestantePago = valorPagoBase;
 
                 for(let i = 1; i <= numParcelas; i++) {
-                    let dataVenc = new Date(ano, parseInt(mes) - 1 + (i - 1), dia);
-                    let vencFormatado = dataVenc.toISOString().split('T')[0];
+                    let dataVenc = new Date(dataBaseObj);
+                    dataVenc.setDate(dataVenc.getDate() + ((i - 1) * intervaloDias));
+                    
+                    let yyyy = dataVenc.getFullYear();
+                    let mm = String(dataVenc.getMonth() + 1).padStart(2, '0');
+                    let dd = String(dataVenc.getDate()).padStart(2, '0');
+                    let vencFormatado = `${yyyy}-${mm}-${dd}`;
                     
                     let valorAtual = valorParcela;
                     if (i === 1) valorAtual += diferenca;
@@ -734,7 +868,7 @@
 
                     registros.push({
                         tipo: tipo,
-                        descricao: descricao, 
+                        descricao: numParcelas > 1 ? `${descricao} (Parc. ${i}/${numParcelas})` : descricao, 
                         cliente: cliente,
                         vencimento: vencFormatado,
                         valor_total: valorAtual,
@@ -756,24 +890,121 @@
         async function editarFinanceiro(id) {
             const { data } = await supabaseClient.from('financeiro').select('*').eq('id', id).single();
             if (data) {
-                document.getElementById('fin-descricao').value = data.descricao.replace(/ \(Parc\. \d+\/\d+\)$/, '');
+                const numParcelaText = data.parcela ? data.parcela.split('/')[0] : '1';
+                const descInput = document.getElementById('fin-descricao');
+                const labelVencimento = document.getElementById('fin-label-vencimento');
+                const divParcelamento = document.getElementById('fin-div-parcelamento');
+
+                if (data.parcela && data.parcela !== '1/1') {
+                    // É a edição de uma parcela filha
+                    descInput.value = `Parcela ${numParcelaText}`;
+                    descInput.disabled = true;
+                    descInput.classList.add('bg-gray-100', 'text-gray-400');
+                    
+                    labelVencimento.innerText = `Vencimento (Parcela ${numParcelaText}) *`;
+                    divParcelamento.classList.add('hidden');
+                    
+                    modalActionContext = 'editar_parcela';
+                } else {
+                    // É a edição de um lançamento único normal (1/1)
+                    descInput.value = data.descricao;
+                    descInput.disabled = false;
+                    descInput.classList.remove('bg-gray-100', 'text-gray-400');
+                    
+                    labelVencimento.innerText = 'Vencimento *';
+                    divParcelamento.classList.remove('hidden');
+                    
+                    modalActionContext = 'editar_simples';
+                }
+
                 document.getElementById('fin-cliente').value = data.cliente || '';
                 document.getElementById('fin-vencimento').value = data.vencimento;
-                
                 document.getElementById('fin-valor-total').value = formatarNumeroParaMoeda(data.valor_total);
                 document.getElementById('fin-valor-pago').value = formatarNumeroParaMoeda(data.valor_pago || 0);
-                
                 document.getElementById('fin-status').value = data.status;
                 document.getElementById('fin-forma-pagamento').value = data.forma_pagamento;
                 
-                document.getElementById('fin-tem-parcelas').checked = false;
-                document.getElementById('fin-tem-parcelas').disabled = true;
-                
-                document.getElementById('fin-parcelas').disabled = true;
-                document.getElementById('fin-parcelas').value = 1;
-                document.getElementById('fin-parcelas').classList.add('bg-gray-100', 'text-gray-400');
+                document.getElementById('fin-valor-total').disabled = false;
+                document.getElementById('fin-valor-pago').disabled = false;
+                document.getElementById('fin-vencimento').disabled = false;
+                document.getElementById('fin-status').disabled = false;
+                document.getElementById('fin-lista-parcelas').classList.add('hidden');
                 
                 financeiroEmEdicaoId = id;
+                financeiroEmEdicaoGrupoId = null;
+                
+                openModal('modal-financeiro');
+            }
+        }
+
+        async function editarGrupo(gId) {
+            const { data } = await supabaseClient.from('financeiro').select('*').eq('grupo_id', gId).eq('apagado', 'N').order('vencimento', { ascending: true });
+            if (data && data.length > 0) {
+                const numParcelas = data.length;
+                const baseItem = data[0];
+
+                const descInput = document.getElementById('fin-descricao');
+                descInput.value = baseItem.descricao.replace(/ \(Parc\. \d+\/\d+\)$/, '');
+                descInput.disabled = false;
+                descInput.classList.remove('bg-gray-100', 'text-gray-400');
+
+                document.getElementById('fin-label-vencimento').innerText = 'Vencimento (1ª Parcela) *';
+                document.getElementById('fin-div-parcelamento').classList.remove('hidden');
+
+                document.getElementById('fin-cliente').value = baseItem.cliente || '';
+                document.getElementById('fin-forma-pagamento').value = baseItem.forma_pagamento;
+
+                const totalValor = data.reduce((acc, curr) => acc + parseFloat(curr.valor_total), 0);
+                const totalPago = data.reduce((acc, curr) => acc + parseFloat(curr.valor_pago || 0), 0);
+
+                document.getElementById('fin-vencimento').value = baseItem.vencimento; 
+                document.getElementById('fin-valor-total').value = formatarNumeroParaMoeda(totalValor);
+                document.getElementById('fin-valor-pago').value = formatarNumeroParaMoeda(totalPago);
+                document.getElementById('fin-status').value = totalPago >= totalValor ? 'Pago' : 'Pendente';
+
+                document.getElementById('fin-valor-total').disabled = false;
+                document.getElementById('fin-valor-pago').disabled = false;
+                document.getElementById('fin-vencimento').disabled = false;
+                document.getElementById('fin-status').disabled = false;
+
+                document.getElementById('fin-tem-parcelas').checked = true;
+                document.getElementById('fin-tem-parcelas').disabled = true;
+                document.getElementById('fin-parcelas').value = numParcelas;
+                document.getElementById('fin-parcelas').disabled = true; 
+                
+                let intervaloCalc = 30;
+                if (data.length > 1) {
+                    let d1 = new Date(data[0].vencimento + 'T00:00:00'); 
+                    let d2 = new Date(data[1].vencimento + 'T00:00:00');
+                    intervaloCalc = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+                }
+                document.getElementById('fin-intervalo').value = intervaloCalc;
+                document.getElementById('fin-intervalo').disabled = false; 
+                document.getElementById('fin-intervalo').classList.remove('bg-gray-100', 'text-gray-400');
+                document.getElementById('fin-intervalo').classList.add('bg-white');
+
+                const listaDiv = document.getElementById('fin-lista-parcelas');
+                listaDiv.classList.remove('hidden');
+
+                let tableHTML = `<h4 class="text-xs font-bold text-gray-700 mb-2">Parcelas atuais antes de salvar:</h4>
+                                 <div class="border border-gray-200 rounded overflow-hidden"><table class="w-full text-left text-[11px]">
+                                 <thead class="bg-gray-50 text-gray-500"><tr><th class="p-2">Parcela</th><th class="p-2">Vencimento</th><th class="p-2">Valor</th><th class="p-2">Status</th></tr></thead><tbody class="divide-y divide-gray-100">`;
+                data.forEach(p => {
+                    const badge = p.status === 'Pago' ? 'text-green-600 bg-green-100' : 'text-yellow-600 bg-yellow-100';
+                    tableHTML += `<tr>
+                        <td class="p-2 font-bold">${p.parcela}</td>
+                        <td class="p-2">${p.vencimento.split('-').reverse().join('/')}</td>
+                        <td class="p-2">R$ ${parseFloat(p.valor_total).toFixed(2).replace('.',',')}</td>
+                        <td class="p-2"><span class="px-1.5 py-0.5 rounded ${badge}">${p.status}</span></td>
+                    </tr>`;
+                });
+                tableHTML += `</tbody></table></div>`;
+                listaDiv.innerHTML = tableHTML;
+
+                financeiroEmEdicaoGrupoId = gId;
+                financeiroEmEdicaoId = null;
+                modalActionContext = 'editar_mestre';
+                
                 openModal('modal-financeiro');
             }
         }
