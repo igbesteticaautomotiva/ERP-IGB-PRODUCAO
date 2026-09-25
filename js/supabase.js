@@ -1,8 +1,8 @@
 // ==========================================
 // CONFIGURAÇÃO SUPABASE (BANCO DE DADOS)
 // ==========================================
-const supabaseUrl = 'https://dxdfailixqzzclqxghos.supabase.co'; 
-const supabaseKey = 'sb_publishable_e_2vixLIkQYhrHaCprGXVg_S5IUrsah'; 
+const supabaseUrl = 'https://ssktbtsjcwppooxiqmkc.supabase.co'; 
+const supabaseKey = 'sb_publishable_4yIuy8TPUdvPAaMTSkenIQ_eJzWahFG'; 
 
 let supabaseClient = null; 
 
