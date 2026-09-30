@@ -6,21 +6,10 @@
     <title>IGB Estética Automotiva - ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-    <!-- Importação do Supabase -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap');
-        html {
-            font-size: 14px;
-        }
-        * {
-            font-family: 'Poppins', sans-serif !important;
-            font-weight: 700 !important;
-        }
-        .tab-active-receber { background-color: #22c55e !important; color: white !important; }
-        .tab-active-pagar { background-color: #ef4444 !important; color: white !important; }
-        .tab-active-baixas { background-color: #3b82f6 !important; color: white !important; }
-    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body class="bg-gray-100 flex h-screen overflow-hidden">
 
@@ -37,13 +26,13 @@
                 <a href="#" onclick="switchTab('clientes', 'CLIENTES')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs" id="nav-clientes">
                     <i class="ph ph-user text-lg"></i> CLIENTES
                 </a>
-                <a href="#" onclick="switchTab('construcao', 'VEÍCULOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                <a href="#" onclick="switchTab('veiculos', 'VEÍCULOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs" id="nav-veiculos">
                     <i class="ph ph-car text-lg"></i> VEÍCULOS
                 </a>
-                <a href="#" onclick="switchTab('construcao', 'SERVIÇOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                <a href="#" onclick="switchTab('servicos', 'SERVIÇOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs" id="nav-servicos">
                     <i class="ph ph-list-dashes text-lg"></i> SERVIÇOS
                 </a>
-                <a href="#" onclick="switchTab('construcao', 'AGENDAMENTOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs">
+                <a href="#" onclick="switchTab('agendamentos', 'AGENDAMENTOS')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs" id="nav-agendamentos">
                     <i class="ph ph-clock text-lg"></i> AGENDAMENTOS
                 </a>
                 <a href="#" onclick="switchTab('financeiro', 'FINANCEIRO')" class="flex items-center gap-3 px-4 py-3 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors text-xs" id="nav-financeiro">
@@ -54,8 +43,9 @@
                 </a>
             </nav>
         </div>
-        <div class="p-6 text-xs text-green-500 flex items-center gap-2">
-            <div class="w-2 h-2 rounded-full bg-green-500"></div> SISTEMA ONLINE <span class="text-gray-600 ml-auto">v1.0</span>
+        <div id="status-container" class="p-6 text-xs text-green-500 flex items-center gap-2 transition-colors duration-300">
+            <div id="status-dot" class="w-2 h-2 rounded-full bg-green-500 transition-colors duration-300"></div> 
+            <span id="status-texto" class="font-bold tracking-wide">SISTEMA ONLINE</span> 
         </div>
     </aside>
 
@@ -63,11 +53,11 @@
     <main class="flex-1 flex flex-col h-screen overflow-hidden">
         <!-- Header -->
         <header class="h-20 bg-transparent flex justify-between items-center px-8 shrink-0 border-b border-gray-200 shadow-sm">
-            <h1 id="page-title" class="text-2xl text-gray-800 tracking-wide">CLIENTES</h1>
+            <h1 id="page-title" class="text-2xl text-gray-800 tracking-wide">AGENDAMENTOS</h1>
             <div class="flex items-center gap-4">
                 <div class="text-right">
-                    <p class="text-gray-800 text-sm">01 de Abril de 2026</p>
-                    <p class="text-gray-400 text-xs">Terça-feira</p>
+                    <p id="header-data" class="text-gray-800 text-sm">Carregando...</p>
+                    <p id="header-dia" class="text-gray-400 text-xs">...</p>
                 </div>
                 <div class="flex items-center gap-3 bg-white pl-3 pr-4 py-1.5 rounded-full shadow-sm border border-gray-100">
                     <div class="w-8 h-8 bg-gray-800 rounded-full flex items-center justify-center text-white text-sm">B</div>
@@ -84,11 +74,11 @@
         </div>
 
         <!-- Clientes Area -->
-        <div id="view-clientes" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative">
+        <div id="view-clientes" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative hidden">
             <div class="bg-gray-900 rounded-xl p-2 flex items-center gap-4 shrink-0 mb-4">
                 <div class="flex items-center gap-2 px-4 border-r border-gray-700">
                     <i class="ph ph-user text-gray-400 text-xl"></i>
-                    <button onclick="openModal('modal-cliente')" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors">
+                    <button onclick="abrirModalNovoCliente()" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors">
                         <i class="ph ph-plus"></i> NOVO
                     </button>
                 </div>
@@ -97,163 +87,313 @@
                     <i class="ph ph-magnifying-glass text-gray-400"></i>
                 </div>
             </div>
-
-            <!-- Tabela Clientes -->
             <div class="bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-y-auto flex-1">
                     <table class="w-full text-left border-collapse" id="tabela-clientes">
                         <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-xs">
-                            <tr>
-                                <th class="py-4 px-6">NOME</th>
-                                <th class="py-4 px-6">TELEFONE</th>
-                                <th class="py-4 px-6">ENDEREÇO</th>
-                                <th class="py-4 px-6">E-MAIL</th>
-                                <th class="py-4 px-6">ÚLTIMO SERVIÇO</th>
-                                <th class="py-4 px-6 text-center">AÇÕES</th>
-                            </tr>
+                            <tr><th class="py-4 px-6">NOME</th><th class="py-4 px-6">TELEFONE</th><th class="py-4 px-6">ENDEREÇO</th><th class="py-4 px-6">E-MAIL</th><th class="py-4 px-6">ÚLTIMO SERVIÇO</th><th class="py-4 px-6 text-center">AÇÕES</th></tr>
                         </thead>
-                        <tbody id="tabela-clientes-body" class="text-sm text-gray-700">
-                            <!-- Injetado via JS -->
-                        </tbody>
+                        <tbody id="tabela-clientes-body" class="text-sm text-gray-700"></tbody>
                     </table>
                 </div>
-                <div class="p-4 border-t border-gray-100 bg-gray-50 flex justify-between items-center text-xs text-gray-500 shrink-0">
-                    <p>Mostrando <span id="contador-clientes" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded">0</span> clientes cadastrados</p>
+            </div>
+        </div>
+
+        <!-- Veículos Area -->
+        <div id="view-veiculos" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative hidden">
+            <div class="bg-gray-900 rounded-[14px] p-2 flex items-center gap-4 shrink-0 mb-4 h-14">
+                <div class="flex items-center gap-2 px-4 border-r border-gray-700 h-full">
+                    <i class="ph ph-car text-gray-400 text-xl"></i>
+                    <button onclick="openModalVeiculo()" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors text-sm"><i class="ph ph-plus font-bold"></i> NOVO</button>
+                </div>
+                <div class="flex-1 flex items-center bg-gray-800 rounded-lg px-4 py-2">
+                    <input type="text" id="pesquisa-veiculos" placeholder="Pesquisar veículos por nome, cor..." class="bg-transparent border-none outline-none text-gray-300 w-full text-sm placeholder-gray-500" oninput="pesquisarVeiculos()">
+                    <i class="ph ph-magnifying-glass text-gray-400"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabela-veiculos">
+                        <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-[11px] uppercase">
+                            <tr><th class="py-4 px-6">VEÍCULO / CATEGORIA</th><th class="py-4 px-6">CLIENTE</th><th class="py-4 px-6">COR</th><th class="py-4 px-6">ANO</th><th class="py-4 px-6">STATUS</th><th class="py-4 px-6">ÚLTIMO SERVIÇO</th><th class="py-4 px-6 text-center">AÇÕES</th></tr>
+                        </thead>
+                        <tbody id="tabela-veiculos-body" class="text-sm text-gray-700 bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Serviços Area -->
+        <div id="view-servicos" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative hidden">
+            <div class="flex gap-2 mb-2 shrink-0 overflow-x-auto pb-1 scrollbar-hide">
+                <button id="tab-srv-hatch" onclick="switchSrvTab('Hatch/Sedan')" class="px-6 py-2 rounded-lg bg-blue-600 text-white text-[11px] font-bold tracking-wider transition-colors shadow-sm whitespace-nowrap">HATCH / SEDAN</button>
+                <button id="tab-srv-suv" onclick="switchSrvTab('SUV/Caminhonete')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm whitespace-nowrap">SUV / CAMINHONETE</button>
+                <button id="tab-srv-moto-baixa" onclick="switchSrvTab('Moto Baixa Cilindrada')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm whitespace-nowrap">MOTO BAIXA CILINDRADA</button>
+                <button id="tab-srv-moto-media" onclick="switchSrvTab('Moto Média Cilindrada')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm whitespace-nowrap">MOTO MÉDIA CILINDRADA</button>
+                <button id="tab-srv-moto-alta" onclick="switchSrvTab('Moto Alta Cilindrada')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm whitespace-nowrap">MOTO ALTA CILINDRADA</button>
+                <button id="tab-srv-biz" onclick="switchSrvTab('Biz')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm whitespace-nowrap">BIZ</button>
+                <button id="tab-srv-geral" onclick="switchSrvTab('Geral')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm whitespace-nowrap">GERAL</button>
+            </div>
+
+            <div class="bg-gray-900 rounded-[14px] p-2 flex items-center gap-4 shrink-0 mb-4 h-14">
+                <div class="flex items-center gap-2 px-4 border-r border-gray-700 h-full">
+                    <i class="ph ph-list-dashes text-gray-400 text-xl"></i>
+                    <button onclick="openModalServico()" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors text-sm"><i class="ph ph-plus font-bold"></i> NOVO</button>
+                </div>
+                <div class="flex-1 flex items-center bg-gray-800 rounded-lg px-4 py-2">
+                    <input type="text" id="pesquisa-servicos" placeholder="Pesquisar serviços na aba atual..." class="bg-transparent border-none outline-none text-gray-300 w-full text-sm placeholder-gray-500" oninput="pesquisarServicos()">
+                    <i class="ph ph-magnifying-glass text-gray-400"></i>
+                </div>
+            </div>
+            <div class="bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabela-servicos">
+                        <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-[11px] uppercase">
+                            <tr><th class="py-4 px-6">NOME DO SERVIÇO</th><th class="py-4 px-6">CATEGORIA</th><th class="py-4 px-6">DESCRIÇÃO</th><th class="py-4 px-6">PREÇO</th><th class="py-4 px-6 text-center">STATUS</th><th class="py-4 px-6 text-center">AÇÕES</th></tr>
+                        </thead>
+                        <tbody id="tabela-servicos-body" class="text-sm text-gray-700 bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- AGENDAMENTOS E ORÇAMENTOS AREA -->
+        <div id="view-agendamentos" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative hidden">
+            
+            <div id="agen-cards-wrapper" class="flex flex-col shrink-0">
+                <div class="flex justify-between items-end mb-2 shrink-0">
+                    <h3 class="text-gray-500 text-xs font-bold uppercase tracking-wider">Resumo do Período</h3>
+                    <button onclick="abrirModalFiltroCards()" class="text-xs bg-white border border-gray-200 text-gray-600 hover:bg-gray-50 px-3 py-1 rounded-lg flex items-center gap-2 shadow-sm font-bold transition-colors">
+                        <i class="ph ph-calendar-blank text-sm"></i> <span id="label-periodo-cards">Mês Atual</span> <i class="ph ph-caret-down"></i>
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-4 gap-4 mb-4 shrink-0">
+                    <div class="bg-[#eaeffc] rounded-xl px-3 py-2 shadow-sm border border-blue-100 flex items-center gap-3 h-[65px]">
+                        <div class="w-10 h-10 rounded-lg bg-[#6185eb] flex items-center justify-center text-white shrink-0 shadow-sm">
+                            <i class="ph ph-calendar-blank text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[12px] text-gray-800 font-bold mb-0 text-center leading-tight">Total Agendados</p>
+                            <h3 id="card-agen-total" class="text-[20px] font-bold text-gray-900 text-center leading-tight">0</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#fcf8e3] rounded-xl px-3 py-2 shadow-sm border border-yellow-100 flex items-center gap-3 h-[65px]">
+                        <div class="w-10 h-10 rounded-lg bg-[#c0ca33] flex items-center justify-center text-gray-800 shrink-0 shadow-sm">
+                            <i class="ph ph-clock text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[12px] text-gray-800 font-bold mb-0 text-center leading-tight">Em Andamento</p>
+                            <h3 id="card-agen-andamento" class="text-[20px] font-bold text-gray-900 text-center leading-tight">0</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#ebf8ee] rounded-xl px-3 py-2 shadow-sm border border-green-100 flex items-center gap-3 h-[65px]">
+                        <div class="w-10 h-10 rounded-lg bg-[#4ade80] flex items-center justify-center text-gray-800 shrink-0 shadow-sm">
+                            <i class="ph ph-check text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[12px] text-gray-800 font-bold mb-0 text-center leading-tight">Finalizados</p>
+                            <h3 id="card-agen-finalizado" class="text-[20px] font-bold text-gray-900 text-center leading-tight">0</h3>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-[#faeaea] rounded-xl px-3 py-2 shadow-sm border border-red-100 flex items-center gap-3 h-[65px]">
+                        <div class="w-10 h-10 rounded-lg bg-[#b95756] flex items-center justify-center text-white shrink-0 shadow-sm">
+                            <i class="ph ph-x text-xl"></i>
+                        </div>
+                        <div class="flex-1">
+                            <p class="text-[12px] text-gray-800 font-bold mb-0 text-center leading-tight">Cancelados</p>
+                            <h3 id="card-agen-cancelado" class="text-[20px] font-bold text-gray-900 text-center leading-tight">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABAS -->
+            <div class="flex gap-2 mb-2 shrink-0">
+                <button id="tab-agen-lista" onclick="switchAgenTab('lista')" class="px-6 py-2 rounded-lg bg-blue-600 text-white text-[11px] font-bold tracking-wider transition-colors shadow-sm">AGENDAMENTOS</button>
+                <button id="tab-agen-grade" onclick="switchAgenTab('grade')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm">GRADE</button>
+                <button id="tab-agen-orcamentos" onclick="switchAgenTab('orcamentos')" class="px-6 py-2 rounded-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-[11px] font-bold tracking-wider transition-colors shadow-sm">ORÇAMENTOS</button>
+            </div>
+            
+            <div class="bg-gray-900 rounded-[14px] p-2 flex items-center gap-4 shrink-0 mb-4 h-14">
+                <div class="flex items-center gap-2 px-4 border-r border-gray-700 h-full">
+                    <i class="ph ph-clock text-gray-400 text-xl"></i>
+                    <button onclick="openModalAgendamentoMaster()" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors text-sm"><i class="ph ph-plus font-bold"></i> NOVO</button>
+                </div>
+                <div class="flex-1 flex items-center bg-gray-800 rounded-lg px-4 py-2">
+                    <input type="text" id="pesquisa-agendamentos" placeholder="Pesquisar agendamento/orçamento..." class="bg-transparent border-none outline-none text-gray-300 w-full text-sm placeholder-gray-500" oninput="pesquisarAgendamentos()">
+                    <i class="ph ph-magnifying-glass text-gray-400"></i>
+                </div>
+                <div class="flex items-center gap-3 px-4 border-l border-gray-700 h-full text-white">
+                    <div class="relative flex items-center gap-2 cursor-pointer hover:text-gray-300 transition-colors" title="Escolher data no calendário" onclick="try { document.getElementById('input-data-filtro').showPicker(); } catch(e) {}">
+                        <input type="date" id="input-data-filtro" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" onchange="mudarDataPeloCalendario(this.value)">
+                        <i class="ph ph-calendar-blank text-xl pointer-events-none"></i>
+                        <span id="label-data-filtro" class="text-sm font-bold tracking-wide w-[85px] text-center pointer-events-none">00/00/0000</span>
+                    </div>
+                    <button onclick="irParaHoje()" class="px-3 h-8 flex items-center justify-center bg-white text-gray-900 rounded-[10px] hover:bg-gray-200 transition-colors text-[11px] font-bold ml-1">HOJE</button>
+                    <button onclick="mudarDataFiltro(-1)" class="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-900 rounded-full hover:bg-white transition-colors"><i class="ph ph-caret-left font-bold"></i></button>
+                    <button onclick="mudarDataFiltro(1)" class="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-900 rounded-full hover:bg-white transition-colors"><i class="ph ph-caret-right font-bold"></i></button>
+                </div>
+            </div>
+            
+            <div id="container-agen-lista" class="bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabela-agendamentos">
+                        <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-[11px] uppercase">
+                            <tr><th class="py-4 px-4 w-32">HORÁRIO</th><th class="py-4 px-4">CLIENTE/VEÍCULO</th><th class="py-4 px-4">DESCRIÇÃO</th><th class="py-4 px-4">SERVIÇOS</th><th class="py-4 px-4 w-32">VALOR TOTAL</th><th class="py-4 px-4 w-32 text-center">STATUS</th><th class="py-4 px-4 w-24 text-center">AÇÕES</th></tr>
+                        </thead>
+                        <tbody id="tabela-agendamentos-body" class="text-sm text-gray-700 bg-white"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="container-agen-grade" class="hidden flex-1 overflow-y-auto overflow-x-hidden pb-4 pr-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="grade-agendamentos-body">
+                </div>
+            </div>
+
+            <!-- CONTAINER EXCLUSIVO DE ORÇAMENTOS -->
+            <div id="container-agen-orcamentos" class="hidden bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-y-auto flex-1">
+                    <table class="w-full text-left border-collapse" id="tabela-orcamentos">
+                        <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-[11px] uppercase">
+                            <tr><th class="py-4 px-4 w-32">DATA</th><th class="py-4 px-4">CLIENTE/VEÍCULO</th><th class="py-4 px-4">DESCRIÇÃO</th><th class="py-4 px-4">SERVIÇOS</th><th class="py-4 px-4 w-32">VALOR TOTAL</th><th class="py-4 px-4 w-32 text-center">STATUS</th><th class="py-4 px-4 w-32 text-center">AÇÕES</th></tr>
+                        </thead>
+                        <tbody id="tabela-orcamentos-body" class="text-sm text-gray-700 bg-white"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
         <!-- Financeiro Area -->
         <div id="view-financeiro" class="flex-1 overflow-hidden pt-4 px-6 pb-6 flex flex-col relative hidden">
-            <!-- Cards Resumo -->
             <div class="grid grid-cols-2 gap-4 mb-4 shrink-0">
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-6 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
-                    <div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
-                        <i class="ph ph-trend-up text-2xl"></i>
-                    </div>
-                    <div class="flex-1 flex justify-between items-end">
-                        <div>
-                            <p class="text-xs text-gray-500 mb-1">CONTAS A RECEBER</p>
-                            <h3 id="resumo-rec-baixado" class="text-2xl text-gray-800">R$ 0,00</h3>
-                            <p class="text-[10px] text-gray-400 uppercase">Total Baixado</p>
-                        </div>
-                        <div>
-                            <h4 id="resumo-rec-pago" class="text-lg text-gray-800">R$ 0,00</h4>
-                            <p class="text-[10px] text-gray-400 uppercase">Pago</p>
-                        </div>
-                        <div>
-                            <h4 id="resumo-rec-pendente" class="text-lg text-gray-800">R$ 0,00</h4>
-                            <p class="text-[10px] text-gray-400 uppercase">Pendente</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-6 relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div>
-                    <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0">
-                        <i class="ph ph-trend-down text-2xl"></i>
-                    </div>
-                    <div class="flex-1 flex justify-between items-end">
-                        <div>
-                            <p class="text-xs text-gray-500 mb-1">CONTAS A PAGAR</p>
-                            <h3 id="resumo-pag-baixado" class="text-2xl text-gray-800">R$ 0,00</h3>
-                            <p class="text-[10px] text-gray-400 uppercase">Total Baixado</p>
-                        </div>
-                        <div>
-                            <h4 id="resumo-pag-pago" class="text-lg text-gray-800">R$ 0,00</h4>
-                            <p class="text-[10px] text-gray-400 uppercase">Pago</p>
-                        </div>
-                        <div>
-                            <h4 id="resumo-pag-pendente" class="text-lg text-gray-800">R$ 0,00</h4>
-                            <p class="text-[10px] text-gray-400 uppercase">Pendente</p>
-                        </div>
-                    </div>
-                </div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-6 relative overflow-hidden"><div class="absolute top-0 left-0 w-full h-1 bg-green-500"></div><div class="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0"><i class="ph ph-trend-up text-2xl"></i></div><div class="flex-1 flex justify-between items-end"><div><p class="text-xs text-gray-500 mb-1">CONTAS A RECEBER</p><h3 id="resumo-rec-baixado" class="text-2xl text-gray-800">R$ 0,00</h3><p class="text-[10px] text-gray-400 uppercase">Total Baixado</p></div><div><h4 id="resumo-rec-pago" class="text-lg text-gray-800">R$ 0,00</h4><p class="text-[10px] text-gray-400 uppercase">Pago</p></div><div><h4 id="resumo-rec-pendente" class="text-lg text-gray-800">R$ 0,00</h4><p class="text-[10px] text-gray-400 uppercase">Pendente</p></div></div></div>
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center gap-6 relative overflow-hidden"><div class="absolute top-0 left-0 w-full h-1 bg-red-500"></div><div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center text-red-600 shrink-0"><i class="ph ph-trend-down text-2xl"></i></div><div class="flex-1 flex justify-between items-end"><div><p class="text-xs text-gray-500 mb-1">CONTAS A PAGAR</p><h3 id="resumo-pag-baixado" class="text-2xl text-gray-800">R$ 0,00</h3><p class="text-[10px] text-gray-400 uppercase">Total Baixado</p></div><div><h4 id="resumo-pag-pago" class="text-lg text-gray-800">R$ 0,00</h4><p class="text-[10px] text-gray-400 uppercase">Pago</p></div><div><h4 id="resumo-pag-pendente" class="text-lg text-gray-800">R$ 0,00</h4><p class="text-[10px] text-gray-400 uppercase">Pendente</p></div></div></div>
             </div>
-
-            <!-- Controles Tabela Financeiro -->
             <div class="flex gap-2 mb-2 shrink-0">
                 <button id="tab-receber" onclick="switchFinTab('receber')" class="px-6 py-2 rounded-t-lg bg-green-500 text-white text-xs transition-colors">CONTAS A RECEBER</button>
                 <button id="tab-pagar" onclick="switchFinTab('pagar')" class="px-6 py-2 rounded-t-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs transition-colors">CONTAS A PAGAR</button>
                 <button id="tab-baixas" onclick="switchFinTab('baixas')" class="px-6 py-2 rounded-t-lg bg-gray-200 text-gray-600 hover:bg-gray-300 text-xs transition-colors">BAIXAS</button>
             </div>
-
             <div class="bg-gray-900 rounded-xl rounded-tl-none p-2 flex items-center gap-4 shrink-0 mb-4">
                 <div class="flex items-center gap-2 px-4 border-r border-gray-700">
                     <span id="badge-fin-tipo" class="bg-green-500 text-white text-[10px] px-2 py-1 rounded">CONTAS A RECEBER</span>
-                    <button id="btn-novo-fin" onclick="openModal('modal-financeiro')" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors ml-2 text-sm">
-                        <i class="ph ph-plus"></i> NOVO
-                    </button>
+                    <button id="btn-novo-fin" onclick="abrirModalNovoFinanceiro()" class="text-white flex items-center gap-2 hover:text-gray-300 transition-colors ml-2 text-sm"><i class="ph ph-plus"></i> NOVO</button>
                 </div>
                 <div class="flex-1 flex items-center bg-gray-800 rounded-lg px-4 py-2">
                     <input type="text" id="pesquisa-financeiro" placeholder="Pesquisar lançamento..." class="bg-transparent border-none outline-none text-gray-300 w-full text-sm placeholder-gray-500" oninput="pesquisarFinanceiro()">
                     <i class="ph ph-magnifying-glass text-gray-400"></i>
                 </div>
             </div>
-
-            <!-- Tabela Financeiro -->
             <div class="bg-white rounded-xl flex-1 flex flex-col shadow-sm border border-gray-100 overflow-hidden">
                 <div class="overflow-y-auto flex-1">
                     <table class="w-full text-left border-collapse" id="tabela-financeiro">
                         <thead class="sticky top-0 bg-gray-50 border-b border-gray-100 z-10 text-gray-600 text-[11px]">
-                            <tr>
-                                <th class="w-10"></th> 
-                                <th class="py-4 px-4">VENCIMENTO</th>
-                                <th class="py-4 px-4">DESCRIÇÃO</th>
-                                <th class="py-4 px-4">CLIENTE/FORNECEDOR</th>
-                                <th class="py-4 px-2 text-center">PARCELAS</th>
-                                <th class="py-4 px-4">V. TOTAL</th>
-                                <th class="py-4 px-4">V. PAGO</th>
-                                <th class="py-4 px-4">STATUS</th>
-                                <th class="py-4 px-4 text-center">AÇÕES</th>
-                            </tr>
+                            <tr><th class="w-10"></th><th class="py-4 px-4">VENCIMENTO</th><th class="py-4 px-4 text-center">TIPO</th><th class="py-4 px-4">DESCRIÇÃO</th><th class="py-4 px-4">CLIENTE/FORNECEDOR</th><th class="py-4 px-2 text-center">PARCELAS</th><th class="py-4 px-4">V. TOTAL</th><th class="py-4 px-4">V. PAGO</th><th class="py-4 px-4">STATUS</th><th class="py-4 px-4 text-center">AÇÕES</th></tr>
                         </thead>
-                        <tbody id="tabela-financeiro-body" class="text-sm text-gray-700">
-                            <!-- Injetado via JS -->
-                        </tbody>
+                        <tbody id="tabela-financeiro-body" class="text-sm text-gray-700"></tbody>
                     </table>
                 </div>
             </div>
         </div>
     </main>
 
-    <!-- Modal Cliente -->
+    <!-- ============================================ -->
+    <!-- MODAIS 100% COMPLETOS                        -->
+    <!-- ============================================ -->
+
+    <!-- Modal Cliente (Mantido com Categoria) -->
     <div id="modal-cliente" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
-        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative">
-            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
-                <h2 class="text-xl text-gray-800 flex items-center gap-2"><i class="ph ph-user-plus text-2xl text-blue-600"></i> Cadastro de Cliente</h2>
-                <button onclick="closeModal('modal-cliente')" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <i class="ph ph-x text-2xl"></i>
-                </button>
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                <h2 class="text-xl text-gray-800 flex items-center gap-2"><i class="ph ph-user-circle text-2xl text-blue-600"></i> <span id="titulo-modal-cliente">Cadastro de Cliente</span></h2>
+                <button onclick="closeModal('modal-cliente')" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-2xl"></i></button>
             </div>
-            <form id="form-cliente" class="p-6 space-y-4" onsubmit="salvarCliente(event)">
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="col-span-2">
-                        <label class="block text-xs text-gray-500 mb-1">Nome Completo *</label>
-                        <input type="text" id="cli-nome" maxlength="60" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 focus:ring-0 outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">Telefone *</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="cli-telefone" placeholder="(00) 00000-0000" maxlength="15" required class="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
-                            <button type="button" onclick="chamarWhatsappModal()" title="Chamar no WhatsApp" class="w-11 bg-green-50 text-green-600 border border-green-200 rounded-lg flex items-center justify-center hover:bg-green-100 transition-colors">
-                                <i class="ph ph-whatsapp-logo text-xl"></i>
+            
+            <div id="cli-tabs-nav" class="flex px-6 border-b border-gray-100 bg-gray-50 hidden shrink-0">
+                <button type="button" onclick="switchCliTab('dados')" id="tab-cli-btn-dados" class="px-4 py-3 text-sm font-bold text-blue-600 border-b-2 border-blue-600">Dados do Cliente</button>
+                <button type="button" onclick="switchCliTab('historico')" id="tab-cli-btn-historico" class="px-4 py-3 text-sm font-bold text-gray-500 hover:text-gray-700 border-b-2 border-transparent">Histórico de Agendamentos</button>
+            </div>
+
+            <form id="form-cliente" class="flex flex-col flex-1 overflow-hidden" onsubmit="salvarCliente(event)">
+                <div id="tab-cli-dados" class="p-6 space-y-4 overflow-y-auto flex-1 block">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="col-span-2">
+                            <label class="block text-xs text-gray-500 mb-1">Nome Completo *</label>
+                            <input type="text" id="cli-nome" maxlength="60" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 focus:ring-0 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Telefone *</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="cli-telefone" placeholder="(00) 00000-0000" maxlength="15" required class="flex-1 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                                <button type="button" onclick="chamarWhatsappModal()" title="Chamar no WhatsApp" class="w-11 bg-green-50 text-green-600 border border-green-200 rounded-lg flex items-center justify-center hover:bg-green-100 transition-colors"><i class="ph ph-whatsapp-logo text-xl"></i></button>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">E-mail</label>
+                            <input type="email" id="cli-email" maxlength="60" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs text-gray-500 mb-1">Endereço</label>
+                            <input type="text" id="cli-endereco" maxlength="60" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                        </div>
+                        
+                        <div id="cli-veiculos-cadastrados-container" class="col-span-2 hidden mt-2">
+                            <h4 class="text-sm font-bold text-gray-700 mb-2">Veículos Vinculados</h4>
+                            <div id="cli-lista-veiculos" class="space-y-2"></div>
+                            <button type="button" id="btn-mostrar-veiculos" class="text-xs text-blue-600 font-bold mt-2 hidden" onclick="toggleListaVeiculos()">Mostrar mais veículos (+)</button>
+                        </div>
+
+                        <div class="col-span-2 border-t border-gray-100 pt-4 mt-2">
+                            <button type="button" id="btn-revelar-veiculo" onclick="toggleNovoVeiculoForm()" class="flex items-center gap-2 text-sm font-bold text-blue-600 hover:text-blue-800 transition-colors">
+                                <i class="ph ph-plus-circle text-lg"></i> Adicionar Veículo a este cliente
                             </button>
                         </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs text-gray-500 mb-1">E-mail</label>
-                        <input type="email" id="cli-email" maxlength="60" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
-                    </div>
-                    <div class="col-span-2">
-                        <label class="block text-xs text-gray-500 mb-1">Endereço</label>
-                        <input type="text" id="cli-endereco" maxlength="60" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+
+                        <div id="cli-novo-veiculo-form" class="col-span-2 grid grid-cols-2 gap-4 hidden bg-gray-50 p-4 rounded-lg border border-gray-200 mt-2">
+                            <div class="col-span-2">
+                                <h4 class="text-sm font-bold text-gray-700 mb-1">Dados do Veículo (Opcional)</h4>
+                                <p class="text-[10px] text-gray-400 mb-2">Preencha os dados abaixo para cadastrar e vincular um novo veículo.</p>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-500 mb-1">Categoria do Veículo</label>
+                                <select id="cli-veiculo-categoria" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white font-bold text-gray-700">
+                                    <option value="Hatch/Sedan">Hatch / Sedan</option>
+                                    <option value="SUV/Caminhonete">SUV / Caminhonete</option>
+                                    <option value="Moto Baixa Cilindrada">Moto Baixa Cilindrada</option>
+                                    <option value="Moto Média Cilindrada">Moto Média Cilindrada</option>
+                                    <option value="Moto Alta Cilindrada">Moto Alta Cilindrada</option>
+                                    <option value="Biz">Biz</option>
+                                    <option value="Outros">Outros</option>
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-xs text-gray-500 mb-1">Modelo do Veículo</label>
+                                <input type="text" id="cli-veiculo-modelo" placeholder="Ex: Hyundai Veloster" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Cor</label>
+                                <input type="text" id="cli-veiculo-cor" placeholder="Ex: Cinza" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Ano</label>
+                                <input type="text" id="cli-veiculo-ano" placeholder="Ex: 2013" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+
+                <div id="tab-cli-historico" class="p-6 space-y-4 overflow-y-auto flex-1 hidden bg-gray-50">
+                    <div id="cli-lista-agendamentos" class="space-y-3"></div>
+                </div>
+
+                <div class="p-4 flex justify-end gap-3 border-t border-gray-100 bg-white shrink-0">
                     <button type="button" onclick="closeModal('modal-cliente')" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
-                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar Cliente</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar Cadastro</button>
                 </div>
             </form>
         </div>
@@ -263,17 +403,11 @@
     <div id="modal-financeiro" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
         <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative max-h-[90vh] flex flex-col">
             <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
-                <h2 id="titulo-modal-financeiro" class="text-xl text-gray-800 flex items-center gap-2">
-                    <i class="ph ph-plus-circle text-2xl text-green-500"></i> Novo Lançamento
-                </h2>
-                <button onclick="closeModal('modal-financeiro')" class="text-gray-400 hover:text-gray-600 transition-colors">
-                    <i class="ph ph-x text-2xl"></i>
-                </button>
+                <h2 id="titulo-modal-financeiro" class="text-xl text-gray-800 flex items-center gap-2"><i class="ph ph-plus-circle text-2xl text-green-500"></i> Novo Lançamento</h2>
+                <button onclick="closeModal('modal-financeiro')" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-2xl"></i></button>
             </div>
-            
             <form id="form-financeiro" class="p-6 space-y-4 overflow-y-auto flex-1" onsubmit="salvarFinanceiro(event)">
                 <input type="hidden" id="fin-tipo-hidden" value="receber">
-                
                 <div class="grid grid-cols-2 gap-4">
                     <div class="col-span-2">
                         <label class="block text-xs text-gray-500 mb-1">Descrição *</label>
@@ -284,10 +418,26 @@
                         <input type="text" id="fin-cliente" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
                     </div>
                     <div>
+                        <label class="block text-xs text-gray-500 mb-1">Tipo / Categoria</label>
+                        <select id="fin-categoria" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            <option value="Avulso">Avulso</option>
+                            <option value="Agendamento">Agendamento</option>
+                            <option value="Fixo">Fixo</option>
+                            <option value="Venda">Venda</option>
+                            <option value="Parcerias">Parcerias</option>
+                        </select>
+                    </div>
+
+                    <div id="fin-servicos-container" class="col-span-2 hidden mb-2">
+                        <label class="block text-xs text-gray-500 mb-1">Serviços Vinculados ao Agendamento</label>
+                        <div id="fin-lista-servicos" class="flex flex-wrap gap-2 p-3 bg-gray-50 border border-gray-200 rounded-lg"></div>
+                    </div>
+
+                    <div>
                         <label id="fin-label-vencimento" class="block text-xs text-gray-500 mb-1">Vencimento (1ª Parcela) *</label>
                         <input type="date" id="fin-vencimento" max="2100-12-31" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
                     </div>
-                    
+
                     <div id="fin-div-parcelamento">
                         <div class="flex justify-between items-center mb-1">
                             <label class="block text-xs text-gray-500">Parcelas e Intervalo (dias)</label>
@@ -300,7 +450,7 @@
                             <input type="number" id="fin-intervalo" min="1" max="45" value="30" oninput="if(this.value > 45) this.value = 45;" disabled required class="w-1/2 border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-gray-100 text-gray-400" title="Dias de intervalo entre parcelas (Máximo 45 dias)">
                         </div>
                     </div>
-
+                    
                     <div>
                         <label class="block text-xs text-gray-500 mb-1">Valor Total (Soma de tudo) *</label>
                         <input type="text" id="fin-valor-total" required placeholder="R$ 0,00" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
@@ -326,29 +476,525 @@
                             <option value="Boleto">Boleto</option>
                         </select>
                     </div>
-                    
-                    <div id="fin-lista-parcelas" class="col-span-2 hidden mt-2">
-                        <!-- Injetado via JS -->
-                    </div>
+                    <div id="fin-lista-parcelas" class="col-span-2 hidden mt-2"></div>
                 </div>
+                
                 <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
                     <button type="button" onclick="closeModal('modal-financeiro')" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                    <button type="button" id="btn-baixar-fin" onclick="darBaixaFinanceiroModal()" class="hidden px-6 py-2.5 rounded-lg bg-green-500 text-white hover:bg-green-600 text-sm font-bold shadow-sm flex items-center gap-2 transition-colors">
+                        <i class="ph ph-check-circle text-lg"></i> Dar Baixa
+                    </button>
                     <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar Lançamento</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Importando seus arquivos JS separados -->
+    <!-- Modal Agendamento Oficial (AQUI ACONTECE A MÁGICA DE NÃO EXIBIR SERVIÇOS ANTES DO VEÍCULO) -->
+    <div id="modal-agendamento" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                <h2 class="text-xl text-gray-800 flex items-center gap-2"><i class="ph ph-clock text-2xl text-blue-600"></i> Agendamento Oficial</h2>
+                <button onclick="closeModalAgendamento()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-2xl"></i></button>
+            </div>
+            <form id="form-agendamento" class="p-6 space-y-4 overflow-y-auto flex-1" onsubmit="salvarAgendamento(event)">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Data *</label>
+                        <input type="date" id="agen-data" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none font-bold">
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider">Início *</label>
+                            <input type="time" id="agen-horario" required class="w-full border border-gray-200 rounded-lg px-2 py-2.5 text-sm focus:border-gray-900 outline-none font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] text-gray-500 mb-1 uppercase tracking-wider text-blue-600 font-bold">Fim (Previsto)</label>
+                            <input type="time" id="agen-horario-fim" class="w-full border border-gray-200 rounded-lg px-2 py-2.5 text-sm focus:border-blue-500 outline-none font-bold text-gray-600">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Cliente Cadastrado *</label>
+                        <select id="agen-cliente" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            <option value="" disabled selected>Selecione um cliente...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Veículo *</label>
+                        <!-- O onChange aqui aciona a mágica de carregar serviços pela categoria -->
+                        <select id="agen-veiculo" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white">
+                            <option value="" selected>Selecione o cliente primeiro...</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-2">Serviços Disponíveis para este Veículo</label>
+                        <div id="agen-servicos-container" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-3 border border-gray-200 rounded-lg bg-gray-50">
+                            <!-- Inicia pedindo o veículo -->
+                            <span class="text-xs text-gray-400 font-bold">Selecione o veículo acima para listar os serviços corretos.</span>
+                        </div>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Descrição do Agendamento *</label>
+                        <input type="text" id="agen-descricao" required placeholder="Ex: Lavagem Simples" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Valor Total (R$) *</label>
+                        <input type="text" id="agen-valor" required placeholder="R$ 0,00" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-green-50 text-green-900 font-bold border-green-200">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Status</label>
+                        <select id="agen-status" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white font-bold text-gray-700">
+                            <option value="Agendado">Agendado</option>
+                            <option value="Em Andamento">Em Andamento</option>
+                            <option value="Finalizado">Finalizado</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                    <button type="button" onclick="closeModalAgendamento()" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Orçamento Simplificado -->
+    <div id="modal-orcamento" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-purple-100 flex justify-between items-center bg-purple-50 rounded-t-xl shrink-0">
+                <h2 class="text-xl text-purple-900 flex items-center gap-2 font-bold"><i class="ph ph-clipboard-text text-2xl text-purple-600"></i> Orçamento Rápido</h2>
+                <button onclick="closeModalOrcamento()" class="text-purple-400 hover:text-purple-700 transition-colors"><i class="ph ph-x text-2xl"></i></button>
+            </div>
+            
+            <form id="form-orcamento" class="p-6 space-y-4 overflow-y-auto flex-1 bg-white" onsubmit="salvarOrcamento(event)">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Data Prevista *</label>
+                        <input type="date" id="orc-data" onchange="atualizarMiniGrade()" required class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none font-bold">
+                    </div>
+
+                    <div class="col-span-2 grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Nome do Cliente *</label>
+                            <input type="text" id="orc-cliente" required placeholder="Digite o nome..." class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Telefone (WhatsApp)</label>
+                            <input type="text" id="orc-telefone" placeholder="(00) 00000-0000" class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none">
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-2 grid grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Categoria</label>
+                            <select id="orc-veiculo-categoria" onchange="carregarServicosOrcamento(this.value)" class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none bg-white font-bold text-gray-700">
+                                <option value="" disabled selected>Selecione...</option>
+                                <option value="Hatch/Sedan">Hatch/Sedan</option>
+                                <option value="SUV/Caminhonete">SUV/Caminhonete</option>
+                                <option value="Moto Baixa Cilindrada">Moto Baixa</option>
+                                <option value="Moto Média Cilindrada">Moto Média</option>
+                                <option value="Moto Alta Cilindrada">Moto Alta</option>
+                                <option value="Biz">Biz</option>
+                                <option value="Geral">Geral</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Veículo</label>
+                            <input type="text" id="orc-veiculo" placeholder="Ex: Civic" class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Cor</label>
+                            <input type="text" id="orc-veiculo-cor" placeholder="Ex: Preto" class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1">Ano</label>
+                            <input type="text" id="orc-veiculo-ano" placeholder="Ex: 2020" class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none">
+                        </div>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-2">Serviços Disponíveis para esta Categoria</label>
+                        <div id="orc-servicos-container" class="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-3 border border-gray-200 rounded-lg bg-gray-50">
+                            <!-- Inicia vazio pedindo categoria -->
+                            <span class="text-xs text-gray-400 font-bold">Selecione a Categoria acima para listar os serviços corretos.</span>
+                        </div>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Descrição / Observação *</label>
+                        <input type="text" id="orc-descricao" required placeholder="O que o cliente quer fazer?" class="w-full border border-gray-200 rounded-lg px-4 py-2 text-sm focus:border-purple-500 outline-none">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Valor do Orçamento (R$) *</label>
+                        <input type="text" id="orc-valor" required placeholder="R$ 0,00" class="w-full border border-purple-200 rounded-lg px-4 py-2.5 text-sm focus:border-purple-500 outline-none bg-purple-50 text-purple-900 font-bold">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Status Base</label>
+                        <input type="text" id="orc-status" value="Orçamento" readonly class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none bg-gray-100 font-bold text-gray-500 cursor-not-allowed">
+                    </div>
+                    
+                    <div class="col-span-2 bg-purple-50 border border-purple-200 rounded-xl p-4 mt-2">
+                        <label class="flex items-center gap-2 font-bold text-purple-900 cursor-pointer">
+                            <input type="checkbox" id="orc-is-agendamento" onchange="toggleOrcamentoAgendar()" class="w-5 h-5 rounded border-purple-300 text-purple-600 focus:ring-purple-500"> 
+                            O cliente aprovou! Transformar em Agendamento Oficial
+                        </label>
+                        
+                        <div id="orc-agendamento-section" class="hidden flex flex-col gap-4 mt-4 border-t border-purple-200 pt-4">
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-[10px] text-purple-700 uppercase font-bold mb-1">Início do Serviço *</label>
+                                    <input type="time" id="orc-horario" class="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:border-purple-500 outline-none font-bold text-gray-800 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-[10px] text-purple-700 uppercase font-bold mb-1">Fim do Serviço (Previsto)</label>
+                                    <input type="time" id="orc-horario-fim" class="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:border-purple-500 outline-none font-bold text-gray-600 bg-white">
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-[10px] text-purple-700 uppercase font-bold mb-2">Grade do Dia (Clique num horário livre para agendar)</label>
+                                <div id="orc-mini-grade" class="flex flex-wrap gap-2 p-3 bg-white rounded-lg border border-purple-200 shadow-inner max-h-32 overflow-y-auto">
+                                    <span class="text-xs text-gray-400">Carregando horários...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                    <button type="button" onclick="closeModalOrcamento()" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                    <button type="submit" id="btn-salvar-orc" class="px-6 py-2.5 rounded-lg bg-purple-600 text-white hover:bg-purple-700 text-sm font-bold shadow-md">Salvar Orçamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal Serviço (SEM DURAÇÃO) -->
+    <div id="modal-servico" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                <h2 class="text-xl text-gray-800 flex items-center gap-2"><i class="ph ph-list-dashes text-2xl text-blue-600"></i> Serviço</h2>
+                <button onclick="closeModalServico()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-2xl"></i></button>
+            </div>
+            <form id="form-servico" class="p-6 space-y-4 overflow-y-auto flex-1" onsubmit="salvarServico(event)">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Nome do Serviço *</label>
+                        <input type="text" id="srv-nome" required placeholder="Ex: Lavagem Técnica" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Categoria (Tipo de Veículo) *</label>
+                        <select id="srv-categoria" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white font-bold text-gray-700">
+                            <option value="Hatch/Sedan">Hatch / Sedan</option>
+                            <option value="SUV/Caminhonete">SUV / Caminhonete</option>
+                            <option value="Moto Baixa Cilindrada">Moto Baixa Cilindrada</option>
+                            <option value="Moto Média Cilindrada">Moto Média Cilindrada</option>
+                            <option value="Moto Alta Cilindrada">Moto Alta Cilindrada</option>
+                            <option value="Biz">Biz</option>
+                            <option value="Geral">Geral</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Descrição</label>
+                        <input type="text" id="srv-descricao" placeholder="Ex: Lavagem Externa detalhada..." class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Preço (R$) *</label>
+                        <input type="text" id="srv-preco" required placeholder="R$ 0,00" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Status</label>
+                        <select id="srv-status" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white font-bold text-gray-700">
+                            <option value="Ativo">Ativo</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                    <button type="button" onclick="closeModalServico()" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Veículo -->
+    <div id="modal-veiculo" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-2xl shadow-xl overflow-hidden relative max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl shrink-0">
+                <h2 class="text-xl text-gray-800 flex items-center gap-2"><i class="ph ph-car text-2xl text-blue-600"></i> Cadastro de Veículo</h2>
+                <button onclick="closeModalVeiculo()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-2xl"></i></button>
+            </div>
+            <form id="form-veiculo" class="p-6 space-y-4 overflow-y-auto flex-1" onsubmit="salvarVeiculo(event)">
+                <div class="grid grid-cols-2 gap-4">
+                    
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Categoria do Veículo *</label>
+                        <select id="vei-categoria" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white font-bold text-gray-700">
+                            <option value="Hatch/Sedan">Hatch / Sedan</option>
+                            <option value="SUV/Caminhonete">SUV / Caminhonete</option>
+                            <option value="Moto Baixa Cilindrada">Moto Baixa Cilindrada</option>
+                            <option value="Moto Média Cilindrada">Moto Média Cilindrada</option>
+                            <option value="Moto Alta Cilindrada">Moto Alta Cilindrada</option>
+                            <option value="Biz">Biz</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Modelo do Veículo *</label>
+                        <input type="text" id="vei-nome" required placeholder="Ex: Hyundai Veloster" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Cliente *</label>
+                        <select id="vei-cliente-nome" required class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white" onchange="preencherTelefoneClienteVeiculo()">
+                            <option value="" disabled selected>Selecione um cliente...</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Telefone do Cliente</label>
+                        <input type="text" id="vei-cliente-telefone" placeholder="(00) 00000-0000" maxlength="15" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-gray-50">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Cor</label>
+                        <input type="text" id="vei-cor" placeholder="Ex: Cinza" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Ano</label>
+                        <input type="text" id="vei-ano" placeholder="Ex: 2013" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none">
+                    </div>
+                    <div class="col-span-2 border-t border-gray-100 pt-4 mt-2">
+                        <h4 class="text-sm font-bold text-gray-700 mb-3">Histórico Automático</h4>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Último Serviço Realizado</label>
+                        <input type="text" id="vei-ultimo-nome" placeholder="Preenchido ao finalizar agenda" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none bg-gray-50 text-gray-500 cursor-not-allowed" readonly>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">Data do Último Serviço</label>
+                        <input type="date" id="vei-ultimo-data" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none bg-gray-50 text-gray-500 cursor-not-allowed" readonly>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs text-gray-500 mb-1">Status</label>
+                        <select id="vei-status" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-gray-900 outline-none bg-white font-bold text-gray-700">
+                            <option value="Ativo">Ativo</option>
+                            <option value="Inativo">Inativo</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="pt-4 flex justify-end gap-3 border-t border-gray-100 mt-6">
+                    <button type="button" onclick="closeModalVeiculo()" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Cancelar</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-lg bg-gray-900 text-white hover:bg-black text-sm">Salvar Veículo</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DO RECIBO FINANCEIRO -->
+    <div id="modal-recibo" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden relative flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                <h2 class="text-lg text-gray-800 flex items-center gap-2 font-bold"><i class="ph ph-receipt text-xl text-green-600"></i> Recibo</h2>
+                <button onclick="fecharRecibo()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            
+            <div class="p-6 bg-gray-100 flex-1 overflow-y-auto flex justify-center items-start">
+                <div id="recibo-content" class="bg-white p-8 border border-gray-200 shadow-sm w-full shrink-0 h-fit" style="width: 100%; max-width: 400px; font-family: sans-serif; color: #333;">
+                    <div class="text-center mb-6 border-b border-gray-200 pb-4 flex flex-col items-center">
+                        <div class="bg-[#0a0a0a] p-3 rounded-lg w-32 mb-4 flex justify-center">
+                            <img src="img/igblogo.png" alt="Logo IGB Estética Automotiva" class="w-full h-auto object-contain">
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-900" id="rec-titulo">RECIBO DE PAGAMENTO</h1>
+                    </div>
+                    
+                    <div class="space-y-4 text-sm">
+                        <div class="flex justify-between border-b border-dashed border-gray-200 pb-2">
+                            <span class="text-gray-500" id="label-rec-valor">Valor Recebido:</span>
+                            <span class="font-bold text-xl text-gray-900" id="rec-valor">R$ 0,00</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block mb-1" id="label-rec-cliente">Recebemos de:</span>
+                            <span class="font-bold text-gray-800" id="rec-cliente">-</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block mb-1">Referente a:</span>
+                            <span class="font-medium text-gray-800" id="rec-descricao">-</span>
+                        </div>
+                        <div id="rec-linha-servicos" class="hidden">
+                            <span class="text-gray-500 block mb-1">Serviços Inclusos:</span>
+                            <span class="font-medium text-gray-800" id="rec-servicos">-</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block mb-1">Forma de Pagamento:</span>
+                            <span class="font-medium text-gray-800" id="rec-forma">-</span>
+                        </div>
+                        <div class="flex justify-between mt-6 pt-4 border-t border-gray-200">
+                            <span class="text-gray-500">Data de Emissão: <strong class="text-gray-800" id="rec-data">-</strong></span>
+                        </div>
+                        
+                        <div class="mt-12 text-center">
+                            <div class="border-t border-gray-400 w-48 mx-auto mb-2"></div>
+                            <p class="text-xs text-gray-500 font-bold">IGB Estética Automotiva</p>
+                            <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">*** Documento Não Fiscal ***</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 flex justify-end gap-3 border-t border-gray-100 bg-white shrink-0">
+                <button type="button" onclick="fecharRecibo()" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Fechar</button>
+                <button type="button" onclick="baixarReciboPNG()" class="px-6 py-2.5 rounded-lg bg-green-600 text-white font-bold hover:bg-green-700 text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all"><i class="ph ph-download-simple text-lg"></i> Baixar PNG</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL IMPRIMIR ORÇAMENTO (PNG) -->
+    <div id="modal-imprimir-orcamento" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[110] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl w-full max-w-md shadow-xl overflow-hidden relative flex flex-col max-h-[90vh]">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                <h2 class="text-lg text-gray-800 flex items-center gap-2 font-bold"><i class="ph ph-image text-xl text-blue-600"></i> Exportar Orçamento</h2>
+                <button onclick="fecharModalImprimirOrcamento()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            
+            <div class="p-6 bg-gray-100 flex-1 overflow-y-auto flex justify-center items-start">
+                <div id="orcamento-img-content" class="bg-white p-8 border border-gray-200 shadow-sm w-full shrink-0 h-fit" style="width: 100%; max-width: 400px; font-family: sans-serif; color: #333;">
+                    <div class="text-center mb-6 border-b border-gray-200 pb-4 flex flex-col items-center">
+                        <div class="bg-[#0a0a0a] p-3 rounded-lg w-32 mb-4 flex justify-center">
+                            <img src="img/igblogo.png" alt="Logo IGB Estética Automotiva" class="w-full h-auto object-contain">
+                        </div>
+                        <h1 class="text-xl font-bold text-gray-900">ORÇAMENTO DE SERVIÇOS</h1>
+                    </div>
+                    
+                    <div class="space-y-4 text-sm">
+                        <div>
+                            <span class="text-gray-500 block mb-1">Cliente:</span>
+                            <span class="font-bold text-gray-800" id="print-orc-cliente">-</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block mb-1">Veículo:</span>
+                            <span class="font-medium text-gray-800" id="print-orc-veiculo">-</span>
+                        </div>
+                        <div>
+                            <span class="text-gray-500 block mb-1">Descrição:</span>
+                            <span class="font-medium text-gray-800" id="print-orc-descricao">-</span>
+                        </div>
+                        
+                        <div class="pt-2 border-t border-dashed border-gray-200">
+                            <span class="text-gray-500 font-bold block mb-2">Serviços e Valores:</span>
+                            <ul id="print-orc-servicos-lista" class="space-y-1 mb-2">
+                                <!-- Preenchido via JS -->
+                            </ul>
+                        </div>
+                        
+                        <div class="flex justify-between border-t border-gray-200 pt-2 mt-4">
+                            <span class="text-gray-500 font-bold">Total do Orçamento:</span>
+                            <span class="font-bold text-xl text-gray-900" id="print-orc-total">R$ 0,00</span>
+                        </div>
+                        
+                        <div class="flex justify-between mt-6 pt-4 border-t border-gray-200">
+                            <span class="text-gray-500 text-xs">Validade: <strong class="text-gray-800">15 dias</strong></span>
+                            <span class="text-gray-500 text-xs">Data: <strong class="text-gray-800" id="print-orc-data">-</strong></span>
+                        </div>
+                        
+                        <div class="mt-8 text-center">
+                            <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-wider">IGB Estética Automotiva</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4 flex justify-end gap-3 border-t border-gray-100 bg-white shrink-0">
+                <button type="button" onclick="fecharModalImprimirOrcamento()" class="px-6 py-2.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 text-sm">Fechar</button>
+                <button type="button" onclick="baixarOrcamentoPNG()" class="px-6 py-2.5 rounded-lg bg-blue-600 text-white font-bold hover:bg-blue-700 text-sm flex items-center gap-2 shadow-md hover:shadow-lg transition-all"><i class="ph ph-download-simple text-lg"></i> Baixar PNG</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Filtro dos Cards -->
+    <div id="modal-filtro-cards" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden z-[100] flex items-center justify-center">
+        <div class="bg-white rounded-2xl w-full max-w-xs shadow-xl overflow-hidden relative flex flex-col">
+            <div class="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 shrink-0">
+                <h2 class="text-base text-gray-800 flex items-center gap-2 font-bold"><i class="ph ph-calendar text-lg text-blue-600"></i> Período do Resumo</h2>
+                <button onclick="fecharModalFiltroCards()" class="text-gray-400 hover:text-gray-600 transition-colors"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="p-5 space-y-4">
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Data Inicial</label>
+                    <input type="date" id="filtro-card-inicio" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-blue-500 outline-none cursor-pointer">
+                </div>
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1">Data Final</label>
+                    <input type="date" id="filtro-card-fim" class="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm focus:border-blue-500 outline-none cursor-pointer">
+                </div>
+            </div>
+            <div class="p-4 flex justify-between items-center border-t border-gray-100 bg-gray-50">
+                <button type="button" onclick="setarMesAtualCards()" class="text-xs text-blue-600 font-bold hover:underline">Mês Atual</button>
+                <div class="flex gap-2">
+                    <button type="button" onclick="fecharModalFiltroCards()" class="px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-100 text-xs font-bold">Cancelar</button>
+                    <button type="button" onclick="aplicarFiltroCards()" class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 text-xs font-bold">Aplicar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="js/supabase.js"></script>
     <script src="js/app.js"></script>
     <script src="js/clientes.js"></script>
     <script src="js/financeiro.js"></script>
+    <script src="js/agendamentos.js"></script>
+    <script src="js/servicos.js"></script>
+    <script src="js/veiculos.js"></script>
     
     <script>
-        // Inicializa a tela padrão (Clientes) assim que a página carrega
+        function setarDataAtual() {
+            const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+            const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+            
+            const hoje = new Date();
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            const mes = meses[hoje.getMonth()];
+            const ano = hoje.getFullYear();
+            const diaSemana = diasSemana[hoje.getDay()];
+
+            document.getElementById('header-data').innerText = `${dia} de ${mes} de ${ano}`;
+            document.getElementById('header-dia').innerText = diaSemana;
+        }
+
+        function verificarConexao() {
+            const container = document.getElementById('status-container');
+            const dot = document.getElementById('status-dot');
+            const texto = document.getElementById('status-texto');
+
+            if (navigator.onLine) {
+                texto.innerText = 'SISTEMA ONLINE';
+                container.classList.remove('text-red-500');
+                container.classList.add('text-green-500');
+                dot.classList.remove('bg-red-500');
+                dot.classList.add('bg-green-500');
+            } else {
+                texto.innerText = 'SISTEMA OFFLINE';
+                container.classList.remove('text-green-500');
+                container.classList.add('text-red-500');
+                dot.classList.remove('bg-green-500');
+                dot.classList.add('bg-red-500');
+            }
+        }
+
+        window.addEventListener('online', verificarConexao);
+        window.addEventListener('offline', verificarConexao);
+
         document.addEventListener('DOMContentLoaded', () => {
-            switchTab('clientes', 'CLIENTES');
+            setarDataAtual();
+            verificarConexao();
+            switchTab('agendamentos', 'AGENDAMENTOS'); 
         });
     </script>
 </body>
